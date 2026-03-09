@@ -1,0 +1,34 @@
+32 codigos encontrados:
+
+PIN: 87647  |  Secretaría Hacienda - Dirección de Fiscalización
+PIN: 80511  |  Secretaría de Integración Social, Familia y Educación (General)
+PIN: 70989  |  Secretaría de Gobierno y Convivencia Ciudadana - Inspección de Policía 1
+PIN: 97978  |  Secretaría de Integración Social, Familia y Educación - Programas Sociales
+PIN: 76518  |  Secretaría de Competitividad y Economía Territorial (General)
+PIN: 69984  |  Secretaría de Infraestructura y Valorización - Dirección Técnica de Infraestructura Física
+PIN: 19521  |  Secretaría de Infraestructura y Valorización - Medio Ambiente
+PIN: 53722  |  Secretaría de Gobierno y Convivencia Ciudadana - Inspección de Policía 2
+PIN: 59388  |  Secretaría de Gobierno y Convivencia Ciudadana (General)
+PIN: 54907  |  Secretaría General - Almacén General
+PIN: 67444  |  Secretaría General - Dirección de Talento Humano
+PIN: 87933  |  Secretaría Hacienda - Dirección de Tesorería y Presupuesto
+PIN: 28970  |  Secretaría Hacienda - Dirección Técnica de Contabilidad
+PIN: 56875  |  Secretaría de Tránsito y Transporte (General)
+PIN: 86365  |  Secretaría de Gobierno y Convivencia Ciudadana - Comisaría de Familia 3
+PIN: 50215  |  Secretaría Hacienda (General)
+PIN: 99617  |  Secretaría de Competitividad y Economía Territorial - Unidad Municipal de Asistencia Técnica Agropecuaria
+PIN: 38734  |  Secretaría de Gobierno y Convivencia Ciudadana - Comisaría de Familia 1
+PIN: 80097  |  Secretaría de Planeación y Desempeño Institucional (General)
+PIN: 29383  |  Secretaría de Turismo, Patrimonio y Comunicación Pública (General)
+PIN: 29663  |  Despacho del Alcalde (General)
+PIN: 85635  |  Secretaría de Tránsito y Transporte - Inspección de Tránsito Municipal
+PIN: 21860  |  Secretaría de Tránsito y Transporte - Cuerpo de Agentes
+PIN: 91200  |  Despacho del Alcalde - Oficina Asesora Jurídica
+PIN: 74204  |  Secretaría de Gobierno y Convivencia Ciudadana - Comisaría de Familia 2
+PIN: 60891  |  Despacho del Alcalde - Oficina de Control Interno de Gestión
+PIN: 38042  |  Despacho del Alcalde - Oficina de las TICs y Gobierno Digital
+PIN: 60999  |  Secretaría de Infraestructura y Valorización (General)
+PIN: 60567  |  Despacho del Alcalde - Dirección de Compras Públicas
+PIN: 32648  |  Secretaría de Planeación y Desempeño Institucional - Dirección Estratégica de Control Urbanístico
+PIN: 89701  |  Secretaría General (General)
+PIN: 14263  |  Secretaría de Integración Social, Familia y Educación - Dirección Local de Salud
