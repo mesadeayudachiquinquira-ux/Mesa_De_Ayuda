@@ -248,7 +248,7 @@ const TicketDetail = () => {
                                 <div className="flex flex-wrap gap-3">
                                     {ticket.adjuntos.map((fileUrl, index) => (
                                         <a
-                                            key={index}
+                                            key={fileUrl}
                                             href={`http://${window.location.hostname}:5000${fileUrl}`}
                                             target="_blank"
                                             rel="noopener noreferrer"

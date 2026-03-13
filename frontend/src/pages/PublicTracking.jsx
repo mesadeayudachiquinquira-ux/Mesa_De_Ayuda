@@ -215,7 +215,7 @@ const PublicTracking = () => {
                                 <div className="flex flex-wrap gap-2">
                                     {ticket.adjuntos.map((url, i) => (
                                         <a
-                                            key={i}
+                                            key={url}
                                             href={`http://${window.location.hostname}:5000${url}`}
                                             target="_blank"
                                             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-blue-600 hover:bg-blue-50 transition-colors shadow-sm"
@@ -236,12 +236,12 @@ const PublicTracking = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
-                            {messages.map((msg, i) => {
+                            {messages.map((msg) => {
                                 const isAdmin = msg.usuarioId?.rol === 'admin';
                                 const isOwn = !msg.usuarioId; // Anonymous messages have no user
 
                                 return (
-                                    <div key={i} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                                    <div key={msg._id || msg.fecha} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] ${isOwn ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-md shadow-blue-500/10' : 'bg-white text-gray-800 shadow-sm border border-gray-200 rounded-2xl rounded-tl-none'} p-4`}>
                                             {!isOwn && (
                                                 <div className="text-[10px] font-black uppercase tracking-wider mb-1 text-blue-600">
