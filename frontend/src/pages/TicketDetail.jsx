@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -38,18 +38,28 @@ const TicketDetail = () => {
     const audioRef = useRef(new Audio('/sounds/notification.mp3'));
     const prevMessagesLength = useRef(0);
 
+    // Ref to track ticket state for interval without causing re-renders
+    const ticketRef = useRef(null);
+    useEffect(() => {
+        ticketRef.current = ticket;
+    }, [ticket]);
+
+    // Initial fetch
     useEffect(() => {
         fetchTicketInfo();
+    }, [id]);
 
-        // Configurar polling cada 5 segundos
+    // Polling interval — uses ref to avoid stale closures
+    useEffect(() => {
         const interval = setInterval(() => {
-            if (ticket && ticket.estado !== 'cerrado') {
+            const currentTicket = ticketRef.current;
+            if (currentTicket && currentTicket.estado !== 'cerrado') {
                 fetchMessagesOnly();
             }
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [id, ticket?.estado]);
+    }, [id]);
 
     useEffect(() => {
         // Scroll to bottom whenever messages update
@@ -58,13 +68,13 @@ const TicketDetail = () => {
         // Play sound if new message is from someone else
         if (messages.length > prevMessagesLength.current && prevMessagesLength.current > 0) {
             const lastMsg = messages[messages.length - 1];
-            const isOwn = lastMsg.usuarioId && (lastMsg.usuarioId._id === user._id || lastMsg.usuarioId === user._id);
+            const isOwn = lastMsg.usuarioId && user && (lastMsg.usuarioId._id === user._id || lastMsg.usuarioId === user._id);
             if (!isOwn) {
                 audioRef.current.play().catch(e => console.log('Audio blocked:', e));
             }
         }
         prevMessagesLength.current = messages.length;
-    }, [messages, user._id]);
+    }, [messages, user?._id]);
 
     const fetchTicketInfo = async () => {
         try {

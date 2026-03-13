@@ -71,7 +71,7 @@ const Tickets = () => {
             fetchTickets();
         } catch (error) {
             console.error('Error creando ticket:', error);
-            alert('Error al crear el ticket');
+            alert(error.response?.data?.message || 'Error al crear el ticket');
         } finally {
             setSubmitting(false);
         }

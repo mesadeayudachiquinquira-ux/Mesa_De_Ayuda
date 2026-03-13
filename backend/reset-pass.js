@@ -9,12 +9,18 @@ async function resetPassword() {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('admin123', salt);
 
-    await User.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
         { email: 'fferchossavila123@gmail.com' },
-        { contraseña: hashedPassword }
+        { contraseña: hashedPassword },
+        { new: true }
     );
 
-    console.log('Password reset to admin123');
+    if (user) {
+        console.log('Password reset successfully to admin123 for:', user.email);
+    } else {
+        console.log('User not found. Password was not reset.');
+    }
+    
     mongoose.connection.close();
 }
 resetPassword();

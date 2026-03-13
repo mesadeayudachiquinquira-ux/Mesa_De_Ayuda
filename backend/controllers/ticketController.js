@@ -34,8 +34,12 @@ const getTicketById = async (req, res) => {
 
     if (ticket) {
         // Si es un usuario normal, solo puede ver sus propios tickets
-        if (req.user.rol !== 'admin' && ticket.creadoPor._id.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'No Autorizado' });
+        // Para tickets públicos (creadoPor es nulo), un usuario normal (no admin) 
+        // no debería tener acceso a través de esta ruta privada.
+        if (req.user.rol !== 'admin') {
+            if (!ticket.creadoPor || ticket.creadoPor._id.toString() !== req.user._id.toString()) {
+                return res.status(401).json({ message: 'No Autorizado' });
+            }
         }
 
         // Traer los mensajes del ticket, poblando solo si el usuario existe (para evitar errores con tickets públicos/anónimos)
@@ -77,26 +81,31 @@ const verifyPin = async (req, res) => {
 // @route   POST /api/tickets
 // @access  Private
 const createTicket = async (req, res) => {
-    const { titulo, descripcion, dependencia, seccion } = req.body;
+    try {
+        const { titulo, descripcion, dependencia, seccion } = req.body;
 
-    // Archivo adjunto (si lo hay)
-    const adjuntoPath = req.file ? `/uploads/${req.file.filename}` : null;
+        // Archivo adjunto (si lo hay)
+        const adjuntoPath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!titulo || !descripcion || !dependencia) {
-        return res.status(400).json({ message: 'Por favor, agregue título, descripción y dependencia' });
+        if (!titulo || !descripcion || !dependencia) {
+            return res.status(400).json({ message: 'Por favor, agregue título, descripción y dependencia' });
+        }
+
+        const ticket = await Ticket.create({
+            titulo,
+            descripcion,
+            dependencia,
+            seccion,
+            estado: 'abierto',
+            creadoPor: req.user._id,
+            adjuntos: adjuntoPath ? [adjuntoPath] : [],
+        });
+
+        res.status(201).json(ticket);
+    } catch (error) {
+        console.error('Error al crear ticket:', error);
+        res.status(500).json({ message: 'Error interno del servidor al crear el ticket' });
     }
-
-    const ticket = await Ticket.create({
-        titulo,
-        descripcion,
-        dependencia,
-        seccion,
-        estado: 'abierto',
-        creadoPor: req.user._id,
-        adjuntos: adjuntoPath ? [adjuntoPath] : [],
-    });
-
-    res.status(201).json(ticket);
 };
 
 // @desc    Crear ticket público (sin login)
@@ -218,8 +227,10 @@ const addMessage = async (req, res) => {
 
     if (ticket) {
         // Verificar si el usuario tiene permiso sobre este ticket
-        if (req.user.rol !== 'admin' && ticket.creadoPor.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'No Autorizado' });
+        if (req.user.rol !== 'admin') {
+            if (!ticket.creadoPor || ticket.creadoPor.toString() !== req.user._id.toString()) {
+                return res.status(401).json({ message: 'No Autorizado' });
+            }
         }
 
         const newMessage = await Message.create({
