@@ -188,9 +188,9 @@ const PublicTracking = () => {
     }
 
     return (
-        <div key="tracking-content" className="h-screen flex flex-col overflow-hidden bg-gray-50" translate="no">
+        <div key="tracking-content" className="min-h-screen bg-gray-50 flex flex-col" translate="no">
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 z-10 shrink-0">
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shrink-0 shadow-sm">
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button
@@ -211,7 +211,7 @@ const PublicTracking = () => {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto px-4 py-8">
+            <main className="flex-1 px-4 py-8">
                 <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-6">
@@ -251,7 +251,7 @@ const PublicTracking = () => {
                     </div>
 
                     {/* Chat Section */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[500px] lg:h-[600px] overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px] max-h-[80vh] overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
                             <MessageCircle className="text-blue-600" size={20} />
                             <h3 className="font-bold text-gray-900"><span>Chat de Soporte</span></h3>
