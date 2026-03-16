@@ -127,7 +127,16 @@ const createPublicTicket = async (req, res) => {
         }
 
         // Generar código de acceso único para seguimiento
-        const codigoAcceso = generateTrackingCode();
+        let codigoAcceso;
+        let codigoExiste = true;
+        
+        while (codigoExiste) {
+            codigoAcceso = generateTrackingCode();
+            const existingTicket = await Ticket.findOne({ codigoAcceso });
+            if (!existingTicket) {
+                codigoExiste = false;
+            }
+        }
 
         // Archivo adjunto (si lo hay)
         const adjuntoPath = req.file ? `/uploads/${req.file.filename}` : null;
@@ -143,7 +152,7 @@ const createPublicTicket = async (req, res) => {
             estado: 'abierto',
             esPúblico: true,
             codigoAcceso,
-            adjuntos: adjuntoPath ? [adjuntoPath] : [],
+            adjuntos: adjuntoPath ? [adjuntoPath] : []
         });
 
         res.status(201).json(ticket);
@@ -273,21 +282,45 @@ const addMessage = async (req, res) => {
     }
 };
 
-// @desc    Obtener ticket público por ID y código
-// @route   GET /api/tickets/public/:id/:codigo
+// @desc    Obtener ticket público solo por código de acceso
+// @route   GET /api/tickets/public/track/:codigo
 // @access  Public
 const getTicketPublicByCode = async (req, res) => {
     try {
-        const ticket = await Ticket.findById(req.params.id);
+        const { codigo } = req.params;
+        console.log('[DEBUG-TRACK] === INICIO BUSQUEDA ===');
+        console.log('[DEBUG-TRACK] Código recibido:', codigo);
 
-        if (!ticket || !ticket.esPúblico || ticket.codigoAcceso !== req.params.codigo) {
+        if (!Ticket) {
+            throw new Error('Modelo Ticket no cargado');
+        }
+
+        const ticket = await Ticket.findOne({ codigoAcceso: codigo });
+
+        if (!ticket) {
+            console.log('[DEBUG-TRACK] Ticket no encontrado para el código:', codigo);
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
         }
 
-        const messages = await Message.find({ ticketId: req.params.id }).populate('usuarioId', 'nombre rol');
+        console.log('[DEBUG-TRACK] Ticket encontrado ID:', ticket._id);
+
+        if (!Message) {
+            throw new Error('Modelo Message no cargado');
+        }
+
+        // Simplificamos omitiendo el populate para descartar errores de esquema/modelo User
+        console.log('[DEBUG-TRACK] Buscando mensajes para ticket:', ticket._id);
+        const messages = await Message.find({ ticketId: ticket._id });
+        
+        console.log('[DEBUG-TRACK] Petición exitosa. Mensajes:', messages.length);
         res.json({ ticket, messages });
     } catch (error) {
-        res.status(500).json({ message: 'Error al buscar el ticket' });
+        console.error('[DEBUG-TRACK] ERROR EN CAPA CONTROLADOR:', error);
+        res.status(500).json({ 
+            message: 'Error al buscar el ticket', 
+            debug: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 
@@ -302,7 +335,14 @@ const addPublicMessage = async (req, res) => {
     }
 
     try {
-        const ticket = await Ticket.findById(req.params.id);
+        let ticket;
+        // Si viene ID en la URL, lo usamos (retrocompatibilidad)
+        if (req.params.id && req.params.id !== 'undefined') {
+            ticket = await Ticket.findById(req.params.id);
+        } else {
+            // Si no, buscamos por código
+            ticket = await Ticket.findOne({ codigoAcceso: codigo });
+        }
 
         if (!ticket || !ticket.esPúblico || ticket.codigoAcceso !== codigo) {
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });

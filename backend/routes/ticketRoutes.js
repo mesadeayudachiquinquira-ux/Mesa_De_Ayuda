@@ -29,8 +29,9 @@ const pinLimiter = rateLimit({
 // Rutas Públicas
 router.post('/public', upload.single('adjunto'), createPublicTicket);
 router.post('/verify-pin', pinLimiter, verifyPin);
-router.get('/public/:id/:codigo', getTicketPublicByCode);
-router.post('/public/:id/mensajes', addPublicMessage);
+router.get('/public/track/:codigo', getTicketPublicByCode);
+router.post('/public/mensajes', addPublicMessage);
+router.post('/public/:id/mensajes', addPublicMessage); // Mantener para compatibilidad temporal
 
 // Rutas Privadas (Requieren Auth)
 router.get('/', protect, getTickets);
@@ -39,7 +40,7 @@ router.get('/:id', protect, getTicketById);
 router.post('/', protect, upload.single('adjunto'), createTicket);
 router.put('/:id', protect, admin, updateTicket);
 router.delete('/:id', protect, admin, deleteTicket);
-router.get('/test/alive', (req, res) => res.json({ message: 'Rutas de tickets activas' }));
+router.get('/test/alive', (req, res) => res.json({ message: 'Rutas de tickets activas', version: '1.0.1-debug' }));
 router.post('/:id/mensajes', protect, addMessage);
 
 module.exports = router;

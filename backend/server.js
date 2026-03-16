@@ -41,8 +41,20 @@ if (process.env.NODE_ENV === 'production') {
         res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
     });
 } else {
-    // Ruta base para comprobación en desarrollo
-    app.get('/', (req, res) => {
+const mongoose = require('mongoose');
+app.get('/api/diag', async (req, res) => {
+    try {
+        const state = mongoose.connection.readyState;
+        const Ticket = mongoose.model('Ticket');
+        const count = await Ticket.countDocuments();
+        res.json({ status: 'ok', dbState: state, ticketCount: count });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
+// Ruta base para comprobación en desarrollo
+app.get('/', (req, res) => {
         res.send('API de Mesa de Ayuda funcionando...');
     });
 }
