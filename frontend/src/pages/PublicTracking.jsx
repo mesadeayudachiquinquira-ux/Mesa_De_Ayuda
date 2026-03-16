@@ -98,7 +98,10 @@ const PublicTracking = () => {
                 navigate(`/seguimiento/${accessCode}`, { replace: true });
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Código de acceso incorrecto o ticket no encontrado.');
+            const errorData = err.response?.data;
+            const msg = errorData?.message || 'Código de acceso incorrecto o ticket no encontrado.';
+            const debug = errorData?.debug ? ` Detalle: ${errorData.debug}` : '';
+            setError(msg + debug);
         } finally {
             setIsVerifying(false);
         }
