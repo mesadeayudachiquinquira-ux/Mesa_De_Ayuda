@@ -124,6 +124,12 @@ const Login = () => {
                         >
                             Crear Ticket de Soporte (Portal Público)
                         </Link>
+                        <Link
+                            to="/seguimiento"
+                            className="w-full flex justify-center py-2.5 px-4 bg-gray-50 border-2 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100/50 transition-all text-sm"
+                        >
+                            Consultar Estado de Ticket
+                        </Link>
                     </div>
                 </div>
             </div>

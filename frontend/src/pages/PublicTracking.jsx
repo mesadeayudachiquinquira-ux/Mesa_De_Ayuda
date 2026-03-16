@@ -14,11 +14,7 @@ import {
 } from 'lucide-react';
 
 const PublicTracking = () => {
-    const { id } = useParams();
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const initialCode = searchParams.get('code') || '';
-
+    const [ticketIdInput, setTicketIdInput] = useState(id || '');
     const [accessCode, setAccessCode] = useState(initialCode);
     const [ticket, setTicket] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -66,7 +62,8 @@ const PublicTracking = () => {
 
     const fetchMessages = async () => {
         try {
-            const { data } = await api.get(`/tickets/public/${id}/${accessCode}`);
+            const currentId = id || ticketIdInput;
+            const { data } = await api.get(`/tickets/public/${currentId}/${accessCode}`);
             // Solo actualizar si el número de mensajes cambió para evitar re-renders innecesarios
             if (data.messages.length !== messages.length) {
                 setMessages(data.messages);
@@ -78,6 +75,12 @@ const PublicTracking = () => {
 
     const handleVerify = async (e) => {
         if (e) e.preventDefault();
+        const currentId = id || ticketIdInput;
+        
+        if (!currentId) {
+            setError('Por favor ingresa el ID del ticket.');
+            return;
+        }
         if (!accessCode) {
             setError('Por favor ingresa el código de acceso.');
             return;
@@ -86,11 +89,11 @@ const PublicTracking = () => {
         setIsVerifying(true);
         setError('');
         try {
-            const { data } = await api.get(`/tickets/public/${id}/${accessCode}`);
+            const { data } = await api.get(`/tickets/public/${currentId}/${accessCode}`);
             setTicket(data.ticket);
             setMessages(data.messages);
         } catch (err) {
-            setError(err.response?.data?.message || 'Código incorrecto o ticket no encontrado.');
+            setError(err.response?.data?.message || 'ID o Código incorrecto.');
         } finally {
             setIsVerifying(false);
         }
@@ -102,7 +105,8 @@ const PublicTracking = () => {
 
         setSending(true);
         try {
-            await api.post(`/tickets/public/${id}/mensajes`, {
+            const currentId = id || ticketIdInput;
+            await api.post(`/tickets/public/${currentId}/mensajes`, {
                 mensaje: newMessage,
                 codigo: accessCode
             });
@@ -135,6 +139,18 @@ const PublicTracking = () => {
                     )}
 
                     <form onSubmit={handleVerify} className="space-y-4">
+                        {!id && (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">ID del Ticket</label>
+                                <input
+                                    type="text"
+                                    value={ticketIdInput}
+                                    onChange={(e) => setTicketIdInput(e.target.value)}
+                                    placeholder="Ej. 65f123abc..."
+                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-800 shadow-sm"
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Código de Acceso</label>
                             <input

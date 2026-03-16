@@ -31,7 +31,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/nuevo-ticket" element={<PublicTicket />} />
-          <Route path="/seguimiento/:id" element={<PublicTracking />} />
+          <Route path="/seguimiento/:id?" element={<PublicTracking />} />
 
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
