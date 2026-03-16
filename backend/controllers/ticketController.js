@@ -312,15 +312,10 @@ const getTicketPublicByCode = async (req, res) => {
         console.log('[DEBUG-TRACK] Buscando mensajes para ticket:', ticket._id);
         const messages = await Message.find({ ticketId: ticket._id });
         
-        console.log('[DEBUG-TRACK] Petición exitosa. Mensajes:', messages.length);
         res.json({ ticket, messages });
     } catch (error) {
-        console.error('[DEBUG-TRACK] ERROR EN CAPA CONTROLADOR:', error);
-        res.status(500).json({ 
-            message: 'Error al buscar el ticket', 
-            debug: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+        console.error('Error en getTicketPublicByCode:', error);
+        res.status(500).json({ message: 'Error al buscar el ticket' });
     }
 };
 
@@ -332,55 +327,40 @@ const addPublicMessage = async (req, res) => {
         const { mensaje, codigo } = req.body;
         const { id } = req.params;
 
-        console.log('[DEBUG-MSG] === INICIO ENVÍO MENSAJE ===');
-        console.log('[DEBUG-MSG] Cuerpo recibido:', { hasMensaje: !!mensaje, codigo });
-        console.log('[DEBUG-MSG] Parámetro ID recibido:', id);
-
         if (!mensaje || !codigo) {
-            console.log('[DEBUG-MSG] Error 400: Faltan datos obligatorios');
             return res.status(400).json({ message: 'El mensaje y el código son obligatorios' });
         }
 
         let ticket;
-        // Si viene ID en la URL, lo usamos (retrocompatibilidad)
         if (id && id !== 'undefined') {
-            console.log('[DEBUG-MSG] Buscando ticket por ID:', id);
             ticket = await Ticket.findById(id);
         } else {
-            console.log('[DEBUG-MSG] Buscando ticket por código:', codigo);
             ticket = await Ticket.findOne({ codigoAcceso: codigo });
         }
 
         if (!ticket) {
-            console.log('[DEBUG-MSG] Error 404: Ticket no encontrado para el código/ID dado');
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
         }
 
-        console.log('[DEBUG-MSG] Ticket encontrado:', ticket._id, 'Código en BD:', ticket.codigoAcceso);
-
         if (ticket.codigoAcceso !== codigo) {
-            console.log('[DEBUG-MSG] Error: El código recibido no coincide con el del ticket');
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
         }
 
         if (ticket.estado === 'cerrado') {
-            console.log('[DEBUG-MSG] Error: El ticket ya está cerrado');
             return res.status(400).json({ message: 'El ticket está cerrado' });
         }
 
-        console.log('[DEBUG-MSG] Creando mensaje en la base de datos...');
         const newMessage = await Message.create({
             ticketId: ticket._id,
             mensaje,
         });
 
-        console.log('[DEBUG-MSG] Mensaje creado exitosamente:', newMessage._id);
         res.status(201).json(newMessage);
 
         // Notificar al administrador
         try {
-            console.log('[DEBUG-MSG] Iniciando proceso de notificación...');
             const usersToNotify = ticket.asignadoA ? [ticket.asignadoA] : (await User.find({ rol: 'admin' })).map(u => u._id);
+
             // ... resto del bloque de notificaciones igual ...
 
             for (const userId of usersToNotify) {
