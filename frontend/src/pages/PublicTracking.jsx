@@ -127,26 +127,26 @@ const PublicTracking = () => {
 
     if (!ticket) {
         return (
-            <div key="verify-screen" className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 animate-fade-in">
+            <div key="verify-screen" className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4" translate="no">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 animate-fade-in border border-slate-100">
                     <div className="text-center mb-8">
                         <div className="bg-blue-600/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Lock className="text-blue-600 w-8 h-8" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">Seguimiento de Ticket</h2>
-                        <p className="text-gray-500 mt-2">Ingresa tu código de seguridad para ver el estado y chat.</p>
+                        <h2 className="text-2xl font-bold text-gray-900"><span>Seguimiento de Ticket</span></h2>
+                        <p className="text-gray-500 mt-2"><span>Ingresa tu código de seguridad para ver el estado y chat.</span></p>
                     </div>
 
                     {error && (
                         <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-                            <AlertCircle size={16} /> {error}
+                            <AlertCircle size={16} /> <span>{error}</span>
                         </div>
                     )}
 
                     <form onSubmit={handleVerify} className="space-y-4">
                         {!id && (
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">ID del Ticket</label>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1"><span>ID del Ticket</span></label>
                                 <input
                                     type="text"
                                     value={ticketIdInput}
@@ -157,7 +157,7 @@ const PublicTracking = () => {
                             </div>
                         )}
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Código de Acceso</label>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1"><span>Código de Acceso</span></label>
                             <input
                                 type="text"
                                 value={accessCode}
@@ -172,14 +172,14 @@ const PublicTracking = () => {
                             className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-100"
                         >
                             {isVerifying && <Loader2 className="animate-spin" size={20} />}
-                            {isVerifying ? 'Verificando...' : 'Consultar Ticket'}
+                            <span>{isVerifying ? 'Verificando...' : 'Consultar Ticket'}</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => navigate('/login')}
                             className="w-full py-3 text-gray-500 text-sm font-medium hover:text-gray-700"
                         >
-                            Volver al inicio
+                            <span>Volver al inicio</span>
                         </button>
                     </form>
                 </div>
@@ -188,7 +188,7 @@ const PublicTracking = () => {
     }
 
     return (
-        <div key="tracking-content" className="min-h-screen bg-gray-50">
+        <div key="tracking-content" className="min-h-screen bg-gray-50" translate="no">
             {/* Header */}
             <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -201,12 +201,12 @@ const PublicTracking = () => {
                         </button>
                         <div className="flex items-center gap-2">
                             <LifeBuoy className="w-6 h-6 text-blue-600" />
-                            <h1 className="text-lg font-bold text-gray-900 hidden sm:block">Mesa de Ayuda</h1>
+                            <h1 className="text-lg font-bold text-gray-900 hidden sm:block"><span>Mesa de Ayuda</span></h1>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-bold text-green-700 uppercase">{ticket.estado.replace('_', ' ')}</span>
+                        <span className="text-xs font-bold text-green-700 uppercase"><span>{ticket.estado.replace('_', ' ')}</span></span>
                     </div>
                 </div>
             </header>
@@ -217,22 +217,22 @@ const PublicTracking = () => {
                     {/* Ticket Summary */}
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <div className="flex justify-between items-start mb-4">
-                            <h2 className="text-2xl font-bold text-gray-900">{ticket.titulo}</h2>
+                            <h2 className="text-2xl font-bold text-gray-900"><span>{ticket.titulo}</span></h2>
                             <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase ${ticket.prioridad === 'alta' ? 'bg-red-50 text-red-600' :
                                 ticket.prioridad === 'media' ? 'bg-yellow-50 text-yellow-600' : 'bg-blue-50 text-blue-600'
                                 }`}>
-                                {ticket.prioridad}
+                                <span>{ticket.prioridad}</span>
                             </span>
                         </div>
-                        <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{ticket.descripcion}</p>
+                        <p className="text-gray-600 leading-relaxed whitespace-pre-wrap"><span>{ticket.descripcion}</span></p>
                         <div className="mt-4 flex items-center gap-4 text-xs text-gray-400">
-                            <span className="flex items-center gap-1"><Clock size={14} /> {new Date(ticket.fechaCreación).toLocaleDateString()}</span>
-                            <span className="font-mono bg-gray-50 px-2 py-1 rounded">ID: {ticket._id}</span>
+                            <span className="flex items-center gap-1"><Clock size={14} /> <span>{new Date(ticket.fechaCreación).toLocaleDateString()}</span></span>
+                            <span className="font-mono bg-gray-50 px-2 py-1 rounded"><span>ID: {ticket._id}</span></span>
                         </div>
 
                         {ticket.adjuntos?.length > 0 && (
                             <div className="mt-6 pt-6 border-t border-gray-50">
-                                <p className="text-xs font-bold text-gray-400 uppercase mb-3">Archivos Adjuntos</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase mb-3"><span>Archivos Adjuntos</span></p>
                                 <div className="flex flex-wrap gap-2">
                                     {ticket.adjuntos.map((url, i) => (
                                         <a
@@ -241,7 +241,7 @@ const PublicTracking = () => {
                                             target="_blank"
                                             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-blue-600 hover:bg-blue-50 transition-colors shadow-sm"
                                         >
-                                            <Paperclip size={14} /> Adjunto {i + 1}
+                                            <Paperclip size={14} /> <span>Adjunto {i + 1}</span>
                                         </a>
                                     ))}
                                 </div>
@@ -253,7 +253,7 @@ const PublicTracking = () => {
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-[600px] overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
                             <MessageCircle className="text-blue-600" size={20} />
-                            <h3 className="font-bold text-gray-900">Chat de Soporte</h3>
+                            <h3 className="font-bold text-gray-900"><span>Chat de Soporte</span></h3>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
@@ -266,12 +266,12 @@ const PublicTracking = () => {
                                         <div className={`max-w-[85%] ${isOwn ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-md shadow-blue-500/10' : 'bg-white text-gray-800 shadow-sm border border-gray-200 rounded-2xl rounded-tl-none'} p-4`}>
                                             {!isOwn && (
                                                 <div className="text-[10px] font-black uppercase tracking-wider mb-1 text-blue-600">
-                                                    Soporte Técnico {isAdmin && '✓'}
+                                                    <span>Soporte Técnico {isAdmin && '✓'}</span>
                                                 </div>
                                             )}
-                                            <p className="text-sm leading-relaxed">{msg.mensaje}</p>
+                                            <p className="text-sm leading-relaxed"><span>{msg.mensaje}</span></p>
                                             <p className={`text-[10px] mt-2 text-right ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}>
-                                                {new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                <span>{new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </p>
                                         </div>
                                     </div>
@@ -301,7 +301,7 @@ const PublicTracking = () => {
                             </form>
                         ) : (
                             <div className="p-4 bg-gray-50 text-center text-gray-500 text-sm font-medium">
-                                Este ticket ha sido cerrado.
+                                <span>Este ticket ha sido cerrado.</span>
                             </div>
                         )}
                     </div>
@@ -310,33 +310,33 @@ const PublicTracking = () => {
                 {/* Sidebar Info */}
                 <div className="space-y-6">
                     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Detalles de Contacto</h3>
+                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4"><span>Detalles de Contacto</span></h3>
                         <div className="space-y-4">
                             <div>
-                                <p className="text-xs text-gray-400">Nombre</p>
-                                <p className="text-sm font-bold text-gray-900">{ticket.nombreContacto || 'No proporcionado'}</p>
+                                <p className="text-xs text-gray-400"><span>Nombre</span></p>
+                                <p className="text-sm font-bold text-gray-900"><span>{ticket.nombreContacto || 'No proporcionado'}</span></p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-400">Correo</p>
-                                <p className="text-sm font-bold text-gray-900">{ticket.correoContacto}</p>
+                                <p className="text-xs text-gray-400"><span>Correo</span></p>
+                                <p className="text-sm font-bold text-gray-900"><span>{ticket.correoContacto}</span></p>
                             </div>
                             {ticket.telefonoContacto && (
                                 <div>
-                                    <p className="text-xs text-gray-400">Teléfono</p>
-                                    <p className="text-sm font-bold text-gray-900">{ticket.telefonoContacto}</p>
+                                    <p className="text-xs text-gray-400"><span>Teléfono</span></p>
+                                    <p className="text-sm font-bold text-gray-900"><span>{ticket.telefonoContacto}</span></p>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-6 text-white shadow-xl shadow-blue-100">
-                        <h3 className="text-sm font-bold mb-2">¿Necesitas cerrar este ticket?</h3>
+                        <h3 className="text-sm font-bold mb-2"><span>¿Necesitas cerrar este ticket?</span></h3>
                         <p className="text-blue-100 text-xs leading-relaxed mb-4">
-                            Si tu problema ya fue resuelto, el equipo técnico lo marcará como completado. Recibirás una notificación por correo.
+                            <span>Si tu problema ya fue resuelto, el equipo técnico lo marcará como completado. Recibirás una notificación por correo.</span>
                         </p>
                         <div className="bg-white/10 rounded-2xl p-4 border border-white/10">
-                            <p className="text-[10px] uppercase font-bold text-blue-200 mb-1">Tu PIN de Acceso</p>
-                            <p className="text-2xl font-black tracking-widest">{accessCode}</p>
+                            <p className="text-[10px] uppercase font-bold text-blue-200 mb-1"><span>Tu PIN de Acceso</span></p>
+                            <p className="text-2xl font-black tracking-widest bg-white/20 p-2 rounded text-center"><span>{accessCode}</span></p>
                         </div>
                     </div>
                 </div>
