@@ -353,7 +353,7 @@ const addPublicMessage = async (req, res) => {
         }
 
         const newMessage = await Message.create({
-            ticketId: req.params.id,
+            ticketId: ticket._id,
             mensaje,
             // usuarioId queda nulo para identificar que es del usuario externo
         });
