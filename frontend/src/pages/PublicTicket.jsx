@@ -73,15 +73,26 @@ const PublicTicket = () => {
         }
 
         try {
+            console.log('Enviando ticket público con datos:', formData);
             const response = await api.post('/tickets/public', data, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            setAccessInfo({ id: response.data._id, code: response.data.codigoAcceso });
-            setSuccess(true);
+            console.log('Respuesta exitosa del servidor:', response.data);
+            
+            if (response.data && response.data._id) {
+                setAccessInfo({ 
+                    id: response.data._id, 
+                    code: response.data.codigoAcceso || 'ERROR' 
+                });
+                setSuccess(true);
+            } else {
+                throw new Error('La respuesta del servidor no contiene los datos del ticket');
+            }
         } catch (err) {
-            setError(err.response?.data?.message || 'Error al enviar el ticket. Por favor, intente de nuevo.');
+            console.error('Error al enviar ticket:', err);
+            setError(err.response?.data?.message || err.message || 'Error al enviar el ticket. Por favor, intente de nuevo.');
         } finally {
             setLoading(false);
         }
@@ -100,7 +111,7 @@ const PublicTicket = () => {
 
                 <div className="p-8">
                     {success ? (
-                        <div key="success-content" className="text-center animate-fade-in">
+                        <div key="success-content" className="text-center animate-fade-in" translate="no">
                             <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle className="text-green-600 w-12 h-12" />
                             </div>
@@ -110,13 +121,17 @@ const PublicTicket = () => {
                             </p>
 
                             <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100 space-y-4 text-left">
-                                <div>
+                                <div key="id-display">
                                     <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1"><span>ID del Ticket</span></p>
-                                    <p className="text-sm font-mono text-gray-700 break-all bg-white p-2 rounded border border-gray-200">{accessInfo.id}</p>
+                                    <p className="text-sm font-mono text-gray-700 break-all bg-white p-2 rounded border border-gray-200">
+                                        <span>{accessInfo.id}</span>
+                                    </p>
                                 </div>
-                                <div>
+                                <div key="pin-display">
                                     <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1"><span>Código de Acceso (Pin)</span></p>
-                                    <p className="text-2xl font-black text-blue-600 tracking-widest bg-white p-3 rounded border border-gray-200 text-center">{accessInfo.code}</p>
+                                    <div className="bg-white p-4 rounded border border-gray-200 text-center">
+                                        <span className="text-3xl font-black text-blue-600 tracking-[0.2em]">{accessInfo.code}</span>
+                                    </div>
                                 </div>
                             </div>
 
