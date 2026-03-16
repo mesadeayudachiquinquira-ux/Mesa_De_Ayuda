@@ -33,6 +33,25 @@ app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/offices', require('./routes/officeRoutes'));
 
+// Endpoint de diagnóstico disponible en todos los entornos
+const mongoose = require('mongoose');
+app.get('/api/diag', async (req, res) => {
+    try {
+        const state = mongoose.connection.readyState;
+        const Ticket = mongoose.model('Ticket');
+        const count = await Ticket.countDocuments();
+        res.json({ 
+            status: 'ok', 
+            dbState: state, 
+            ticketCount: count,
+            nodeEnv: process.env.NODE_ENV,
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+});
+
 // Servir el Frontend en producción
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -41,21 +60,10 @@ if (process.env.NODE_ENV === 'production') {
         res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
     });
 } else {
-const mongoose = require('mongoose');
-app.get('/api/diag', async (req, res) => {
-    try {
-        const state = mongoose.connection.readyState;
-        const Ticket = mongoose.model('Ticket');
-        const count = await Ticket.countDocuments();
-        res.json({ status: 'ok', dbState: state, ticketCount: count });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-});
-
 // Ruta base para comprobación en desarrollo
-app.get('/', (req, res) => {
-        res.send('API de Mesa de Ayuda funcionando...');
+app.get('/test-server', (req, res) => {
+    res.send('API de Mesa de Ayuda funcionando...');
+});
     });
 }
 
