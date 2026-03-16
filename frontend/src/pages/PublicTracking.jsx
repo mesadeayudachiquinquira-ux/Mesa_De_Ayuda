@@ -35,16 +35,19 @@ const PublicTracking = () => {
     const firstLoad = useRef(true);
 
 
+    // Verificación automática basada en la URL o carga inicial
     useEffect(() => {
-        if (initialCode) {
+        if (initialCode && !ticket) {
             handleVerify();
         }
+    }, [initialCode]);
 
-        // Configurar polling cada 5 segundos
+    // Polling de mensajes solo si ya tenemos un ticket validado
+    useEffect(() => {
+        if (!ticket || !accessCode) return;
+
         const interval = setInterval(() => {
-            if (ticket && accessCode) {
-                fetchMessages();
-            }
+            fetchMessages();
         }, 5000);
 
         return () => clearInterval(interval);
