@@ -89,7 +89,7 @@ const PublicTicket = () => {
 
     if (success) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-4">
+            <div key="success-screen" className="min-h-screen flex flex-col items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center animate-fade-in">
                     <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="text-green-600 w-12 h-12" />
@@ -130,7 +130,7 @@ const PublicTicket = () => {
     }
 
     return (
-        <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+        <div key="create-form" className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in">
                 <div className="bg-blue-600 p-8 text-white">
                     <div className="flex items-center gap-3 mb-2">

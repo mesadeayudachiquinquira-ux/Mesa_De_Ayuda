@@ -127,7 +127,7 @@ const PublicTracking = () => {
 
     if (!ticket) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+            <div key="verify-screen" className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 animate-fade-in">
                     <div className="text-center mb-8">
                         <div className="bg-blue-600/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -188,7 +188,7 @@ const PublicTracking = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div key="tracking-content" className="min-h-screen bg-gray-50">
             {/* Header */}
             <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
