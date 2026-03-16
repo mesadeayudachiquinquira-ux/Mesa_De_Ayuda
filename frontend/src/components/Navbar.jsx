@@ -137,7 +137,7 @@ const Navbar = ({ toggleSidebar }) => {
                                                 <div
                                                     key={n._id}
                                                     onClick={() => markAsRead(n._id)}
-                                                    className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-50 last:border-0 flex gap-3 ${!n.leido ? 'bg-blue-50/30' : ''}`}
+                                                    className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-50 last:border-0 flex gap-3 group ${!n.leido ? 'bg-blue-50/30' : ''}`}
                                                 >
                                                     <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!n.leido ? 'bg-blue-600' : 'bg-transparent'}`} />
                                                     <div className="flex-1">
