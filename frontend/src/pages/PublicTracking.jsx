@@ -14,6 +14,11 @@ import {
 } from 'lucide-react';
 
 const PublicTracking = () => {
+    const { id } = useParams();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const initialCode = searchParams.get('code') || '';
+
     const [ticketIdInput, setTicketIdInput] = useState(id || '');
     const [accessCode, setAccessCode] = useState(initialCode);
     const [ticket, setTicket] = useState(null);
