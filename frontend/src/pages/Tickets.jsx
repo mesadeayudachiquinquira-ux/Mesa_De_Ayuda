@@ -135,12 +135,25 @@ const Tickets = () => {
     const closedTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado === 'cerrado') : [];
 
     const filteredTickets = (filterStatus === 'active' ? activeTickets : closedTickets).filter(t => {
-        const busqueda = searchTerm.toLowerCase();
-        const titulo = (t?.titulo || '').toLowerCase();
-        const estado = (t?.estado || '').toLowerCase();
-        
-        return titulo.includes(busqueda) || estado.includes(busqueda);
+        try {
+            const busqueda = (searchTerm || '').toLowerCase();
+            const titulo = (t?.titulo || 'SIN TITULO').toLowerCase();
+            const estado = (t?.estado || 'SIN ESTADO').toLowerCase();
+            
+            return titulo.includes(busqueda) || estado.includes(busqueda);
+        } catch (err) {
+            console.error('Error filtrando ticket:', t, err);
+            return false;
+        }
     });
+
+    // Debug log para ver qué llega exactamente
+    useEffect(() => {
+        if (tickets.length > 0) {
+            console.log('Tickets cargados:', tickets.length);
+            console.log('Ejemplo primer ticket:', tickets[0]);
+        }
+    }, [tickets]);
 
     return (
         <div className="space-y-6">
@@ -275,32 +288,32 @@ const Tickets = () => {
                                             />
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900 mb-1">{ticket.titulo}</div>
+                                            <div className="text-sm font-medium text-gray-900 mb-1">{ticket?.titulo || 'Sin Título'}</div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-gray-500 truncate max-w-[200px]">{ticket.descripcion}</span>
+                                                <span className="text-xs text-gray-500 truncate max-w-[200px]">{ticket?.descripcion || 'Sin descripción'}</span>
                                                 <span className="text-xs font-bold text-gray-400">|</span>
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${ticket.esPúblico ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                    {ticket.esPúblico ? 'Externo' : 'Interno'}
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${ticket?.esPúblico ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                    {ticket?.esPúblico ? 'Externo' : 'Interno'}
                                                 </span>
                                             </div>
                                             <div className="text-[10px] text-gray-400 mt-1 italic">
-                                                De: {ticket.esPúblico ? `${ticket.nombreContacto} (${ticket.correoContacto})` : ticket.creadoPor?.nombre}
+                                                De: {ticket?.esPúblico ? `${ticket?.nombreContacto || 'Anonimo'} (${ticket?.correoContacto || 'N/A'})` : (ticket?.creadoPor?.nombre || 'Usuario Desconocido')}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full 
-                        ${ticket.estado === 'abierto' ? 'bg-red-100 text-red-700' :
-                                                    ticket.estado === 'en_progreso' ? 'bg-yellow-100 text-yellow-800' :
+                        ${ticket?.estado === 'abierto' ? 'bg-red-100 text-red-700' :
+                                                    ticket?.estado === 'en_progreso' ? 'bg-yellow-100 text-yellow-800' :
                                                         'bg-green-100 text-green-700'}`}>
-                                                {ticket.estado.replace('_', ' ').toUpperCase()}
+                                                {(ticket?.estado || 'DESCONOCIDO').replace('_', ' ').toUpperCase()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 hidden md:table-cell">
-                                            <div className="text-sm text-gray-700 font-medium">{ticket.dependencia}</div>
-                                            {ticket.seccion && <div className="text-xs text-gray-400">{ticket.seccion}</div>}
+                                            <div className="text-sm text-gray-700 font-medium">{ticket?.dependencia || 'N/A'}</div>
+                                            {ticket?.seccion && <div className="text-xs text-gray-400">{ticket?.seccion}</div>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(ticket.fechaCreación).toLocaleDateString()}
+                                            {ticket?.fechaCreación ? new Date(ticket.fechaCreación).toLocaleDateString() : 'N/A'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <Link to={`/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md transition-colors hover:bg-blue-100 font-semibold">
