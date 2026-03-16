@@ -249,15 +249,15 @@ const Tickets = () => {
             {/* Tickets Table */}
             <div className="card overflow-hidden !p-0">
                 {loading ? (
-                    <div className="flex justify-center p-12">
+                    <div key="loader" className="flex justify-center p-12">
                         <span className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></span>
                     </div>
                 ) : filteredTickets.length === 0 ? (
-                    <div className="p-12 text-center text-gray-500">
+                    <div key="empty-state" className="p-12 text-center text-gray-500">
                         No se encontraron tickets con "<b>{searchTerm}</b>" o no hay tickets creados.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div key="table-content" className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-300">
                             <thead className="bg-gray-100">
                                 <tr>
