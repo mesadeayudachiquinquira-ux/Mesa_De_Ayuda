@@ -171,10 +171,7 @@ const Navbar = ({ toggleSidebar }) => {
                                             ))
                                         )}
                                     </div>
-                                    <div className="px-4 py-2 border-t border-gray-50 flex justify-between items-center bg-gray-50/50 rounded-b-2xl">
-                                        <button className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest">
-                                            Historial
-                                        </button>
+                                    <div className="px-4 py-2 border-t border-gray-50 flex justify-end items-center bg-gray-50/50 rounded-b-2xl">
                                         {notifications.length > 0 && (
                                             <button
                                                 onClick={deleteAllNotifications}
