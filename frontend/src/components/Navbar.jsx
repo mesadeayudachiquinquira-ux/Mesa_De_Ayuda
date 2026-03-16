@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Menu, Bell, User as UserIcon } from 'lucide-react';
+import { Menu, Bell, User as UserIcon, X, Trash2 } from 'lucide-react';
 import api from '../api/axios';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -60,6 +60,26 @@ const Navbar = ({ toggleSidebar }) => {
             setNotifications(notifications.map(n => ({ ...n, leido: true })));
         } catch (error) {
             console.error('Error marking all as read:', error);
+        }
+    };
+
+    const deleteNotification = async (e, id) => {
+        e.stopPropagation(); // Prevenir que se marque como leída al borrar
+        try {
+            await api.delete(`/notifications/${id}`);
+            setNotifications(notifications.filter(n => n._id !== id));
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
+    const deleteAllNotifications = async () => {
+        if (!window.confirm('¿Estás seguro de que deseas eliminar todas las notificaciones?')) return;
+        try {
+            await api.delete('/notifications');
+            setNotifications([]);
+        } catch (error) {
+            console.error('Error deleting all notifications:', error);
         }
     };
 
@@ -128,14 +148,30 @@ const Navbar = ({ toggleSidebar }) => {
                                                             {new Date(n.fecha).toLocaleString()}
                                                         </p>
                                                     </div>
+                                                    <button
+                                                        onClick={(e) => deleteNotification(e, n._id)}
+                                                        className="h-6 w-6 rounded-full flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                                                        title="Eliminar notificación"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             ))
                                         )}
                                     </div>
-                                    <div className="px-4 py-2 border-t border-gray-50 text-center">
-                                        <button className="text-xs font-bold text-gray-500 hover:text-gray-700">
-                                            Ver historial completo
+                                    <div className="px-4 py-2 border-t border-gray-50 flex justify-between items-center bg-gray-50/50 rounded-b-2xl">
+                                        <button className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest">
+                                            Historial
                                         </button>
+                                        {notifications.length > 0 && (
+                                            <button
+                                                onClick={deleteAllNotifications}
+                                                className="text-[10px] font-bold text-red-500 hover:text-red-600 uppercase tracking-widest flex items-center gap-1"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                                Limpiar todo
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}

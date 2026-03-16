@@ -47,8 +47,39 @@ const markAllAsRead = async (req, res) => {
     }
 };
 
+// @desc    Eliminar una notificación
+// @route   DELETE /api/notifications/:id
+// @access  Private
+const deleteNotification = async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.id);
+        if (notification && notification.usuarioId.toString() === req.user._id.toString()) {
+            await Notification.findByIdAndDelete(req.params.id);
+            res.json({ message: 'Notificación eliminada' });
+        } else {
+            res.status(404).json({ message: 'Notificación no encontrada' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Error al eliminar notificación' });
+    }
+};
+
+// @desc    Eliminar todas las notificaciones del usuario
+// @route   DELETE /api/notifications
+// @access  Private
+const deleteAllNotifications = async (req, res) => {
+    try {
+        await Notification.deleteMany({ usuarioId: req.user._id });
+        res.json({ message: 'Todas las notificaciones han sido eliminadas' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error al eliminar notificaciones' });
+    }
+};
+
 module.exports = {
     getNotifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
 };
