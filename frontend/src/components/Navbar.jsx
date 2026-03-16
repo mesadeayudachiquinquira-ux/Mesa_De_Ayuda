@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Menu, Bell, User as UserIcon, X, Trash2 } from 'lucide-react';
 import api from '../api/axios';
 
 const Navbar = ({ toggleSidebar }) => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const dropdownRef = useRef(null);
@@ -83,6 +85,16 @@ const Navbar = ({ toggleSidebar }) => {
         }
     };
 
+    const handleNotificationClick = async (notification) => {
+        if (!notification.leido) {
+            await markAsRead(notification._id);
+        }
+        if (notification.link) {
+            navigate(notification.link);
+            setShowNotifications(false);
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.leido).length;
 
     return (
@@ -136,7 +148,7 @@ const Navbar = ({ toggleSidebar }) => {
                                             notifications.map(n => (
                                                 <div
                                                     key={n._id}
-                                                    onClick={() => markAsRead(n._id)}
+                                                    onClick={() => handleNotificationClick(n)}
                                                     className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-50 last:border-0 flex gap-3 group ${!n.leido ? 'bg-blue-50/30' : ''}`}
                                                 >
                                                     <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!n.leido ? 'bg-blue-600' : 'bg-transparent'}`} />
