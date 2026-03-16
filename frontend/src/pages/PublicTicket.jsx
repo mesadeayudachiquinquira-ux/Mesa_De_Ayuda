@@ -121,26 +121,21 @@ const PublicTicket = () => {
                             </p>
 
                             <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100 space-y-4 text-left">
-                                <div key="id-display">
-                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1"><span>ID del Ticket</span></p>
-                                    <p className="text-sm font-mono text-gray-700 break-all bg-white p-2 rounded border border-gray-200">
-                                        <span>{accessInfo.id}</span>
-                                    </p>
-                                </div>
                                 <div key="pin-display">
-                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1"><span>Código de Acceso (Pin)</span></p>
-                                    <div className="bg-white p-4 rounded border border-gray-200 text-center">
-                                        <span className="text-3xl font-black text-blue-600 tracking-[0.2em]">{accessInfo.code}</span>
+                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2 text-center"><span>Tu Código de Acceso (PIN)</span></p>
+                                    <div className="bg-white p-6 rounded-2xl border border-blue-200 text-center shadow-inner">
+                                        <span className="text-4xl font-black text-blue-600 tracking-[0.3em]">{accessInfo.code}</span>
                                     </div>
+                                    <p className="text-[10px] text-gray-400 text-center mt-3 uppercase font-bold"><span>Usa este código único para consultar el estado en cualquier momento</span></p>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <button
-                                    onClick={() => navigate(`/seguimiento/${accessInfo.id}?code=${accessInfo.code}`)}
+                                    onClick={() => navigate(`/seguimiento/${accessInfo.code}`)}
                                     className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-[0.98]"
                                 >
-                                    <span>Ir al Seguimiento y Chat</span>
+                                    <span>Ir al Seguimiento ahora</span>
                                 </button>
                                 <button
                                     onClick={() => navigate('/login')}

@@ -14,12 +14,11 @@ import {
 } from 'lucide-react';
 
 const PublicTracking = () => {
-    const { id } = useParams();
+    const { codigo: urlCodigo } = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const initialCode = searchParams.get('code') || '';
+    const initialCode = urlCodigo || searchParams.get('code') || '';
 
-    const [ticketIdInput, setTicketIdInput] = useState(id || '');
     const [accessCode, setAccessCode] = useState(initialCode);
     const [ticket, setTicket] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -67,8 +66,7 @@ const PublicTracking = () => {
 
     const fetchMessages = async () => {
         try {
-            const currentId = id || ticketIdInput;
-            const { data } = await api.get(`/tickets/public/${currentId}/${accessCode}`);
+            const { data } = await api.get(`/tickets/public/track/${accessCode}`);
             // Solo actualizar si el número de mensajes cambió para evitar re-renders innecesarios
             if (data.messages.length !== messages.length) {
                 setMessages(data.messages);
@@ -80,12 +78,7 @@ const PublicTracking = () => {
 
     const handleVerify = async (e) => {
         if (e) e.preventDefault();
-        const currentId = id || ticketIdInput;
         
-        if (!currentId) {
-            setError('Por favor ingresa el ID del ticket.');
-            return;
-        }
         if (!accessCode) {
             setError('Por favor ingresa el código de acceso.');
             return;
@@ -94,11 +87,15 @@ const PublicTracking = () => {
         setIsVerifying(true);
         setError('');
         try {
-            const { data } = await api.get(`/tickets/public/${currentId}/${accessCode}`);
+            const { data } = await api.get(`/tickets/public/track/${accessCode}`);
             setTicket(data.ticket);
             setMessages(data.messages);
+            // Si no estaba en la URL, lo ponemos para que el polling funcione con el código correcto
+            if (!urlCodigo) {
+                navigate(`/seguimiento/${accessCode}`, { replace: true });
+            }
         } catch (err) {
-            setError(err.response?.data?.message || 'ID o Código incorrecto.');
+            setError(err.response?.data?.message || 'Código de acceso incorrecto o ticket no encontrado.');
         } finally {
             setIsVerifying(false);
         }
@@ -110,8 +107,7 @@ const PublicTracking = () => {
 
         setSending(true);
         try {
-            const currentId = id || ticketIdInput;
-            await api.post(`/tickets/public/${currentId}/mensajes`, {
+            await api.post(`/tickets/public/mensajes`, {
                 mensaje: newMessage,
                 codigo: accessCode
             });
@@ -143,43 +139,42 @@ const PublicTracking = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleVerify} className="space-y-4">
-                        {!id && (
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1"><span>ID del Ticket</span></label>
+                    <form onSubmit={handleVerify} className="space-y-6">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1"><span>Código de Acceso (PIN)</span></label>
+                            <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={24} />
                                 <input
                                     type="text"
-                                    value={ticketIdInput}
-                                    onChange={(e) => setTicketIdInput(e.target.value)}
-                                    placeholder="Ej. 65f123abc..."
-                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-800 shadow-sm"
+                                    value={accessCode}
+                                    onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                                    placeholder="EJ: XA5K7"
+                                    className="w-full pl-12 pr-4 py-5 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white outline-none transition-all text-center font-mono text-3xl tracking-[0.3em] text-blue-600 shadow-inner"
+                                    maxLength={8}
+                                    required
                                 />
                             </div>
-                        )}
-                        <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1"><span>Código de Acceso</span></label>
-                            <input
-                                type="text"
-                                value={accessCode}
-                                onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                                placeholder="EJ. XA5K7"
-                                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-center font-mono text-xl tracking-widest text-gray-800 shadow-sm"
-                            />
+                            <p className="text-[10px] text-gray-400 text-center mt-3 uppercase font-bold tracking-widest"><span>Ingresa el código que se te entregó al crear el ticket</span></p>
                         </div>
+
                         <button
                             type="submit"
                             disabled={isVerifying}
-                            className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg shadow-blue-100"
+                            className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-blue-200 active:scale-[0.98]"
                         >
-                            {isVerifying && <Loader2 className="animate-spin" size={20} />}
-                            <span>{isVerifying ? 'Verificando...' : 'Consultar Ticket'}</span>
+                            {isVerifying ? (
+                                <><Loader2 className="animate-spin" size={24} /> <span>Verificando...</span></>
+                            ) : (
+                                <span>Consultar Estado del Ticket</span>
+                            )}
                         </button>
+                        
                         <button
                             type="button"
                             onClick={() => navigate('/login')}
-                            className="w-full py-3 text-gray-500 text-sm font-medium hover:text-gray-700"
+                            className="w-full py-3 text-gray-500 text-sm font-medium hover:text-gray-800 transition-colors"
                         >
-                            <span>Volver al inicio</span>
+                            <span>Volver al portal de inicio</span>
                         </button>
                     </form>
                 </div>
