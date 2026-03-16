@@ -34,11 +34,21 @@ const Tickets = () => {
     const [selectedTickets, setSelectedTickets] = useState([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+    const [refreshing, setRefreshing] = useState(false);
+
     useEffect(() => {
         fetchTickets();
+
+        // Configurar polling cada 30 segundos
+        const intervalId = setInterval(() => {
+            fetchTicketsSilently();
+        }, 30000);
+
+        return () => clearInterval(intervalId);
     }, []);
 
     const fetchTickets = async () => {
+        setLoading(true);
         try {
             const { data } = await api.get('/tickets');
             setTickets(data);
@@ -46,6 +56,19 @@ const Tickets = () => {
             console.error('Error cargando tickets:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchTicketsSilently = async () => {
+        setRefreshing(true);
+        try {
+            const { data } = await api.get('/tickets');
+            setTickets(data);
+        } catch (error) {
+            console.error('Error en recarga automática:', error);
+        } finally {
+            // Un pequeño delay para que el indicador sea perceptible pero no molesto
+            setTimeout(() => setRefreshing(false), 2000);
         }
     };
 
@@ -120,7 +143,15 @@ const Tickets = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Gestión de Tickets</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-gray-900">Gestión de Tickets</h1>
+                        {refreshing && (
+                            <div className="flex items-center text-blue-500 animate-pulse">
+                                <span className="h-2 w-2 bg-blue-500 rounded-full mr-2"></span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Actualizando...</span>
+                            </div>
+                        )}
+                    </div>
                     <p className="text-gray-500 mt-1">Lista completa y estado de todos los requerimientos.</p>
                 </div>
 
