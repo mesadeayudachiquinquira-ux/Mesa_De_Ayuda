@@ -116,8 +116,8 @@ const createPublicTicket = async (req, res) => {
         console.log('Recibida petición de ticket público:', req.body);
         const { titulo, descripcion, pin, nombreContacto, correoContacto, telefonoContacto } = req.body;
 
-        if (!pin) {
-            return res.status(400).json({ message: 'El PIN de oficina es obligatorio' });
+        if (!titulo || !descripcion || !pin) {
+            return res.status(400).json({ message: 'El título, la descripción y el PIN de oficina son obligatorios' });
         }
 
         // Verificar el PIN de nuevo en el servidor

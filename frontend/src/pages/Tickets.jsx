@@ -131,13 +131,16 @@ const Tickets = () => {
         }
     };
 
-    const activeTickets = tickets.filter(t => t.estado !== 'cerrado');
-    const closedTickets = tickets.filter(t => t.estado === 'cerrado');
+    const activeTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado !== 'cerrado') : [];
+    const closedTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado === 'cerrado') : [];
 
-    const filteredTickets = (filterStatus === 'active' ? activeTickets : closedTickets).filter(t =>
-        t.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.estado.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTickets = (filterStatus === 'active' ? activeTickets : closedTickets).filter(t => {
+        const busqueda = searchTerm.toLowerCase();
+        const titulo = (t?.titulo || '').toLowerCase();
+        const estado = (t?.estado || '').toLowerCase();
+        
+        return titulo.includes(busqueda) || estado.includes(busqueda);
+    });
 
     return (
         <div className="space-y-6">
