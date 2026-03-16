@@ -64,7 +64,6 @@ if (process.env.NODE_ENV === 'production') {
 app.get('/test-server', (req, res) => {
     res.send('API de Mesa de Ayuda funcionando...');
 });
-    });
 }
 
 const PORT = process.env.PORT || 5000;
