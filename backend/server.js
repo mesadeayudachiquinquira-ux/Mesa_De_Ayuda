@@ -14,6 +14,9 @@ connectDB();
 
 const app = express();
 
+// Confiar en el proxy de Render (necesario para express-rate-limit)
+app.set('trust proxy', 1);
+
 // Middlewares
 app.use(helmet({
     contentSecurityPolicy: false, // Deshabilitar CSP si da problemas con recursos externos, o configurar adecuadamente

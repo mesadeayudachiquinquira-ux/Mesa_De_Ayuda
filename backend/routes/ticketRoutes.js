@@ -17,10 +17,10 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const { upload } = require('../middleware/uploadMiddleware');
 const rateLimit = require('express-rate-limit');
 
-// Limitador para prevenir fuerza bruta en los PINs (máximo 10 intentos cada 15 min por IP)
+// Limitador para prevenir fuerza bruta en los PINs (más permisivo para pruebas: 50 intentos / 15 min)
 const pinLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: 50,
     message: { message: 'Demasiados intentos de verificación. Intente de nuevo en 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false,
