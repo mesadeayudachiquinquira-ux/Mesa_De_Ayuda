@@ -79,7 +79,7 @@ const templateBienvenida = ({ nombre, titulo, dependencia, codigoAcceso }) => `
         </table>
         <p>Conserve este codigo para consultar el estado de su solicitud en nuestra plataforma.</p>
     </div>
-    <div class="footer"><p>MuniSupport Chiquinquira - Soporte Interno</p></div>
+    <div class="footer"><p>MuniSupport Chiquinquira</p></div>
 </div></body></html>`;
 
 const templateResolucion = ({ nombre, titulo, codigoAcceso, resolucion, atendidoPor }) => `
@@ -100,7 +100,7 @@ const templateResolucion = ({ nombre, titulo, codigoAcceso, resolucion, atendido
             <p style="margin:0; font-style:italic;">"${resolucion}"</p>
         </div>
     </div>
-    <div class="footer"><p>MuniSupport Chiquinquira - Soporte Interno</p></div>
+    <div class="footer"><p>MuniSupport Chiquinquira</p></div>
 </div></body></html>`;
 
 const templateMensajeDirecto = ({ nombre, titulo, codigoAcceso, mensaje }) => `
@@ -121,7 +121,7 @@ const templateMensajeDirecto = ({ nombre, titulo, codigoAcceso, mensaje }) => `
             <tr><td class="label">Seguimiento</td><td class="value">${codigoAcceso}</td></tr>
         </table>
     </div>
-    <div class="footer"><p>MuniSupport Chiquinquira - Soporte Interno</p></div>
+    <div class="footer"><p>MuniSupport Chiquinquira</p></div>
 </div></body></html>`;
 
 /**
