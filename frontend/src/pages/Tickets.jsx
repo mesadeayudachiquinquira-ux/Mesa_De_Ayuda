@@ -33,6 +33,7 @@ const Tickets = () => {
     const [submitting, setSubmitting] = useState(false);
 
     const [filterStatus, setFilterStatus] = useState('active'); // active, closed
+    const [selectedResponsable, setSelectedResponsable] = useState('');
     const [selectedTickets, setSelectedTickets] = useState([]);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -136,18 +137,44 @@ const Tickets = () => {
     const activeTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado !== 'cerrado') : [];
     const closedTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado === 'cerrado') : [];
 
+    // Calcular responsables de tickets cerrados
+    const statsResponsables = closedTickets.reduce((acc, t) => {
+        const nombre = t.atendidoPorNombre || 'No Registrado';
+        acc[nombre] = (acc[nombre] || 0) + 1;
+        return acc;
+    }, {});
+    
+    // Convertir a array y ordenar por cantidad de tickets (mayor a menor)
+    const topResponsables = Object.entries(statsResponsables)
+        .map(([nombre, count]) => ({ nombre, count }))
+        .sort((a, b) => b.count - a.count);
+
     const filteredTickets = (filterStatus === 'active' ? activeTickets : closedTickets).filter(t => {
         try {
             const busqueda = (searchTerm || '').toLowerCase();
             const titulo = (t?.titulo || 'SIN TITULO').toLowerCase();
             const estado = (t?.estado || 'SIN ESTADO').toLowerCase();
+            const responsable = (t?.atendidoPorNombre || '').toLowerCase();
             
-            return titulo.includes(busqueda) || estado.includes(busqueda);
+            const matchSearch = titulo.includes(busqueda) || estado.includes(busqueda) || responsable.includes(busqueda);
+            
+            if (filterStatus === 'closed' && selectedResponsable) {
+                return matchSearch && (t.atendidoPorNombre || 'No Registrado') === selectedResponsable;
+            }
+            
+            return matchSearch;
         } catch (err) {
             console.error('Error filtrando ticket:', t, err);
             return false;
         }
     });
+
+    // Añadir efecto para limpiar el responsable seleccionado si cambiamos de pestaña
+    useEffect(() => {
+        if (filterStatus === 'active') {
+            setSelectedResponsable('');
+        }
+    }, [filterStatus]);
 
     // Debug log para ver qué llega exactamente
     useEffect(() => {
@@ -247,6 +274,40 @@ const Tickets = () => {
                     />
                 </div>
             </div>
+
+            {/* Estadisticas de Resolución (solo en archivo cerrados) */}
+            {filterStatus === 'closed' && closedTickets.length > 0 && topResponsables.length > 0 && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 animate-in fade-in slide-in-from-top-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wider flex items-center">
+                            <span className="text-xl mr-2">🏆</span>
+                            Ranking de Resolución
+                        </h3>
+                        {selectedResponsable && (
+                            <button onClick={() => setSelectedResponsable('')} className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-full transition-colors">
+                                Quitar filtro: {selectedResponsable}
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                        {topResponsables.slice(0, 5).map((r, idx) => (
+                            <div 
+                                key={r.nombre} 
+                                onClick={() => setSelectedResponsable(selectedResponsable === r.nombre ? '' : r.nombre)}
+                                className={`flex items-center bg-white border ${selectedResponsable === r.nombre ? 'border-primary-500 ring-2 ring-primary-100' : 'border-transparent'} rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer min-w-[200px]`}
+                            >
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mr-3 ${idx === 0 ? 'bg-yellow-100 text-yellow-700 shadow-inner' : idx === 1 ? 'bg-gray-100 text-gray-600' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'}`}>
+                                    #{idx + 1}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]" title={r.nombre}>{r.nombre}</p>
+                                    <p className="text-xs font-semibold text-blue-600 bg-blue-50 inline-block px-2 py-0.5 mt-1 rounded-md">{r.count} resueltos</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Tickets Table container with translation isolation */}
             <div className="card overflow-hidden !p-0" translate="no">
