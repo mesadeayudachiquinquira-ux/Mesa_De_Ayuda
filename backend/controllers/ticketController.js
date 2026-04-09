@@ -4,7 +4,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const AccessCode = require('../models/AccessCode');
 const crypto = require('crypto');
-const { sendMailToInternalUsers } = require('../utils/emailService');
+const { sendMailToInternalUsers, sendMailToCitizen } = require('../utils/emailService');
 
 // Helper para generar código de seguimiento único (6 caracteres)
 const generateTrackingCode = () => {
@@ -71,7 +71,7 @@ const createTicket = async (req, res) => {
         const { titulo, descripcion, dependencia, seccion } = req.body;
 
         // Archivo adjunto (si lo hay)
-        const adjuntoPath = req.file ? `/uploads/${req.file.filename}` : null;
+        const adjuntoPath = req.file ? req.file.path : null;
 
         if (!titulo || !descripcion || !dependencia) {
             return res.status(400).json({ message: 'Por favor, agregue título, descripción y dependencia' });
@@ -125,7 +125,7 @@ const createPublicTicket = async (req, res) => {
         }
 
         // Archivo adjunto (si lo hay)
-        const adjuntoPath = req.file ? `/uploads/${req.file.filename}` : null;
+        const adjuntoPath = req.file ? req.file.path : null;
 
         const ticket = await Ticket.create({
             titulo,
@@ -142,6 +142,16 @@ const createPublicTicket = async (req, res) => {
         });
 
         res.status(201).json(ticket);
+
+        // Enviar correo de bienvenida/recibo al ciudadano
+        if (correoContacto) {
+            sendMailToCitizen(correoContacto, 'bienvenida', {
+                nombre: nombreContacto,
+                titulo,
+                dependencia: accessCode.dependencia,
+                codigoAcceso
+            }).catch(err => console.error('Error enviando bienvenida al ciudadano:', err));
+        }
 
         // Notificar a todos los administradores sobre el nuevo ticket público
         try {
@@ -193,6 +203,17 @@ const updateTicket = async (req, res) => {
         const updatedTicket = await ticket.save();
         res.json(updatedTicket);
 
+        // Correo de resolución al ciudadano si se cierra un ticket público
+        if (estado === 'cerrado' && ticket.esPúblico && ticket.correoContacto) {
+            sendMailToCitizen(ticket.correoContacto, 'resolucion', {
+                nombre: ticket.nombreContacto,
+                titulo: ticket.titulo,
+                codigoAcceso: ticket.codigoAcceso,
+                resolucion: comentarioResolucion || ticket.comentarioResolucion || 'Sin detalles adicionales.',
+                atendidoPor: atendidoPorNombre || ticket.atendidoPorNombre
+            }).catch(err => console.error('Error enviando resolución al ciudadano:', err));
+        }
+
         // Notificar al creador del ticket sobre el cambio de estado
         try {
             if (ticket.creadoPor && estado) {
@@ -215,7 +236,7 @@ const updateTicket = async (req, res) => {
 // @route   POST /api/tickets/:id/mensajes
 // @access  Private
 const addMessage = async (req, res) => {
-    const { mensaje } = req.body;
+    const { mensaje, notificarCiudadano } = req.body;
 
     if (!mensaje) {
         return res.status(400).json({ message: 'Mensaje vacío' });
@@ -231,6 +252,16 @@ const addMessage = async (req, res) => {
         });
 
         res.status(201).json(newMessage);
+
+        // Si el funcionario marcó "Notificar al ciudadano", enviar correo de mensaje directo
+        if (notificarCiudadano && ticket.esPúblico && ticket.correoContacto) {
+            sendMailToCitizen(ticket.correoContacto, 'mensaje', {
+                nombre: ticket.nombreContacto,
+                titulo: ticket.titulo,
+                codigoAcceso: ticket.codigoAcceso,
+                mensaje
+            }).catch(err => console.error('Error enviando mensaje directo al ciudadano:', err));
+        }
 
         // Notificar a los correspondientes
         try {

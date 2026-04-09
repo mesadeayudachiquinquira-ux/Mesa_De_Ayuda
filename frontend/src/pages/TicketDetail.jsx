@@ -26,6 +26,7 @@ const TicketDetail = () => {
 
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
+    const [notificarCiudadano, setNotificarCiudadano] = useState(false);
 
     // Recovery/Resolution states
     const [showResolutionModal, setShowResolutionModal] = useState(false);
@@ -106,8 +107,9 @@ const TicketDetail = () => {
 
         setSending(true);
         try {
-            await api.post(`/tickets/${id}/mensajes`, { mensaje: newMessage });
+            await api.post(`/tickets/${id}/mensajes`, { mensaje: newMessage, notificarCiudadano });
             setNewMessage('');
+            setNotificarCiudadano(false);
             fetchTicketInfo(); // Refresh messages
         } catch (error) {
             console.error('Error sending message:', error);
@@ -345,6 +347,21 @@ const TicketDetail = () => {
                                             {sending ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : <Send className="h-5 w-5" />}
                                         </button>
                                     </div>
+                                    {/* Checkbox para notificar al ciudadano por correo */}
+                                    {ticket.correoContacto && (
+                                        <label className="flex items-center gap-2 mt-3 cursor-pointer select-none w-fit">
+                                            <input
+                                                type="checkbox"
+                                                checked={notificarCiudadano}
+                                                onChange={(e) => setNotificarCiudadano(e.target.checked)}
+                                                className="w-4 h-4 accent-blue-600 rounded"
+                                            />
+                                            <span className="text-xs text-gray-500">
+                                                📧 Notificar este mensaje al ciudadano por correo
+                                                <span className="text-blue-500 ml-1">({ticket.correoContacto})</span>
+                                            </span>
+                                        </label>
+                                    )}
                                 </form>
                             ) : (
                                 <div className="mt-4 pt-4 border-t border-gray-100 text-center text-gray-500 font-medium bg-gray-50 p-3 rounded-lg flex items-center justify-center">
