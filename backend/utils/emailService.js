@@ -7,158 +7,125 @@ if (process.env.SMTP_PASS) {
 
 const FROM_EMAIL = process.env.SMTP_FROM || 'mesadeayudachiquinquira@gmail.com';
 
-// ─── Estilos base compartidos por todas las plantillas ─────────────────────
+/**
+ * Función auxiliar para capitalizar nombres (ej: juan -> Juan)
+ */
+const capitalize = (str) => {
+    if (!str) return '';
+    return str.replace(/\b\w/g, l => l.toUpperCase());
+};
+
+// ─── Estilos base optimizados para compatibilidad con correo ───────────────
 const baseStyles = `
-    body { margin: 0; padding: 0; background-color: #f0f4f8; font-family: 'Segoe UI', Arial, sans-serif; }
-    .wrapper { max-width: 620px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, #1a56db 0%, #1e429f 100%); padding: 36px 40px; text-align: center; }
-    .header h1 { margin: 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
-    .header p { margin: 6px 0 0; color: #bfdbfe; font-size: 13px; }
-    .body { padding: 36px 40px; }
-    .body h2 { color: #1e3a8a; font-size: 18px; margin-top: 0; }
-    .body p { color: #374151; font-size: 15px; line-height: 1.7; }
-    .code-box { background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 8px; padding: 16px 24px; text-align: center; margin: 24px 0; }
-    .code-box span { font-size: 28px; font-weight: 800; letter-spacing: 6px; color: #1d4ed8; font-family: 'Courier New', monospace; }
-    .info-row { display: flex; align-items: flex-start; margin: 12px 0; }
-    .info-label { min-width: 120px; font-size: 13px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-    .info-value { font-size: 15px; color: #111827; font-weight: 500; }
-    .resolution-box { background: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; }
-    .resolution-box p { margin: 0; color: #14532d; font-style: italic; font-size: 15px; }
-    .message-box { background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; }
-    .message-box p { margin: 0; color: #1e3a8a; font-size: 15px; }
-    .btn { display: inline-block; background: #1a56db; color: #ffffff !important; text-decoration: none; padding: 13px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; margin: 20px 0 8px; }
-    .footer { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 24px 40px; text-align: center; }
-    .footer p { margin: 0; font-size: 12px; color: #9ca3af; line-height: 1.6; }
-    .footer strong { color: #6b7280; }
+    body { margin: 0; padding: 0; background-color: #f0f4f8; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+    .wrapper { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .header { background-color: #1e40af; background: linear-gradient(135deg, #1e40af 0%, #17368d 100%); padding: 30px 40px; text-align: center; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 22px; font-weight: bold; }
+    .header p { margin: 5px 0 0; color: #dbeafe; font-size: 14px; letter-spacing: 0.5px; }
+    .body { padding: 40px; }
+    .body h2 { color: #1e3a8a; font-size: 19px; margin-top: 0; margin-bottom: 20px; }
+    .body p { color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
+    .code-box { background-color: #eff6ff; border: 1px dashed #3b82f6; border-radius: 6px; padding: 20px; text-align: center; margin: 25px 0; }
+    .code-box span { font-size: 26px; font-weight: bold; letter-spacing: 4px; color: #1e40af; font-family: monospace; }
+    
+    /* Estilos de tabla para alineación perfecta */
+    .info-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .info-table td { padding: 8px 0; vertical-align: top; font-size: 14px; }
+    .info-label { width: 110px; color: #6b7280; font-weight: bold; text-transform: uppercase; font-size: 12px; }
+    .info-value { color: #111827; font-weight: 500; }
+    
+    .status-box { background-color: #f9fafb; border-left: 4px solid #3b82f6; padding: 15px 20px; margin: 20px 0; }
+    .status-box p { margin: 0; color: #1e40af; font-size: 15px; }
+    .res-box { background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px 20px; margin: 20px 0; }
+    .res-box p { margin: 0; color: #166534; font-size: 15px; font-style: italic; }
+    
+    .footer { background-color: #f8fafc; padding: 25px 40px; text-align: center; border-top: 1px solid #e2e8f0; }
+    .footer p { margin: 0; font-size: 12px; color: #94a3b8; }
 `;
 
 // ─── Plantilla 1: Recibo de bienvenida ─────────────────────────────────────
 const templateBienvenida = ({ nombre, titulo, dependencia, codigoAcceso }) => `
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
 <body><div class="wrapper">
-  <div class="header">
-    <h1>🏛️ MuniSupport Chiquinquirá</h1>
-    <p>Sistema de Gestión de Solicitudes Ciudadanas</p>
-  </div>
-  <div class="body">
-    <h2>Hemos recibido su solicitud, ${nombre || 'estimado ciudadano'}.</h2>
-    <p>
-      Nos complace informarle que su requerimiento ha sido registrado exitosamente en nuestra plataforma 
-      y se encuentra actualmente en revisión por parte del equipo de <strong>${dependencia}</strong>.
-    </p>
-    <p>Su código único de seguimiento es:</p>
-    <div class="code-box"><span>${codigoAcceso}</span></div>
-    <div class="info-row">
-      <span class="info-label">Asunto</span>
-      <span class="info-value">${titulo}</span>
+    <div class="header">
+        <h1>🏛️ MuniSupport Chiquinquirá</h1>
+        <p>Sistema de Gestión de Solicitudes</p>
     </div>
-    <div class="info-row">
-      <span class="info-label">Dependencia</span>
-      <span class="info-value">${dependencia}</span>
+    <div class="body">
+        <h2>Hemos recibido su solicitud, ${capitalize(nombre)}.</h2>
+        <p>
+            Su requerimiento ha sido registrado exitosamente y se encuentra actualmente en revisión por parte del 
+            <strong>equipo de soporte</strong>.
+        </p>
+        <div class="code-box"><span>${codigoAcceso}</span></div>
+        <table class="info-table">
+            <tr><td class="info-label">Asunto</td><td class="info-value">${titulo}</td></tr>
+            <tr><td class="info-label">Dependencia</td><td class="info-value">${dependencia}</td></tr>
+        </table>
+        <p style="margin-top: 25px;">
+            Guarde su código de seguimiento para consultar el estado de su trámite y las respuestas enviadas por nuestro equipo.
+        </p>
     </div>
-    <p style="margin-top:24px;">
-      Guarde este código con cuidado. Con él podrá consultar el estado de su solicitud y 
-      revisar las respuestas que nuestro equipo le envíe en cualquier momento.
-    </p>
-    <p>Le responderemos a la mayor brevedad posible. Gracias por confiar en MuniSupport Chiquinquirá.</p>
-  </div>
-  <div class="footer">
-    <p><strong>MuniSupport Chiquinquirá</strong> &bull; Sistema de Atención al Ciudadano<br>
-    Este es un mensaje automático, por favor no responda a este correo.</p>
-  </div>
+    <div class="footer"><p>MuniSupport Chiquinquirá &bull; Sistema de Gestión de Solicitudes</p></div>
 </div></body></html>`;
 
 // ─── Plantilla 2: Cierre y resolución ──────────────────────────────────────
 const templateResolucion = ({ nombre, titulo, codigoAcceso, resolucion, atendidoPor }) => `
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
 <body><div class="wrapper">
-  <div class="header">
-    <h1>🏛️ MuniSupport Chiquinquirá</h1>
-    <p>Sistema de Gestión de Solicitudes Ciudadanas</p>
-  </div>
-  <div class="body">
-    <h2>✅ Su solicitud ha sido atendida, ${nombre || 'estimado ciudadano'}.</h2>
-    <p>
-      Nos complace comunicarle que su requerimiento registrado bajo el código 
-      <strong style="color:#1d4ed8;">${codigoAcceso}</strong> ha sido procesado y 
-      marcado como <strong>Resuelto</strong> por nuestro equipo.
-    </p>
-    <div class="info-row">
-      <span class="info-label">Asunto</span>
-      <span class="info-value">${titulo}</span>
+    <div class="header">
+        <h1>🏛️ MuniSupport Chiquinquirá</h1>
+        <p>Sistema de Gestión de Solicitudes</p>
     </div>
-    <div class="info-row">
-      <span class="info-label">Atendido por</span>
-      <span class="info-value">${atendidoPor || 'Equipo MuniSupport'}</span>
+    <div class="body">
+        <h2>✅ Solicitud resuelta, ${capitalize(nombre)}.</h2>
+        <p>Su requerimiento con código <strong>${codigoAcceso}</strong> ha sido atendido satisfactoriamente.</p>
+        <table class="info-table">
+            <tr><td class="info-label">Asunto</td><td class="info-value">${titulo}</td></tr>
+            <tr><td class="info-label">Atendido por</td><td class="info-value">${atendidoPor || 'Equipo de Soporte'}</td></tr>
+        </table>
+        <div class="res-box"><p>"${resolucion}"</p></div>
+        <p>Gracias por utilizar nuestro sistema de gestión. Su opinión y seguimiento son fundamentales para nosotros.</p>
     </div>
-    <p style="margin-top: 20px; font-weight: 600; color: #374151;">Detalle de la solución brindada:</p>
-    <div class="resolution-box">
-      <p>"${resolucion}"</p>
-    </div>
-    <p>
-      Si considera que su solicitud no fue atendida correctamente o si tiene una nueva 
-      pregunta, puede registrar un nuevo requerimiento en nuestra plataforma en cualquier momento.
-    </p>
-    <p>Gracias por su confianza en los servicios de MuniSupport Chiquinquirá.</p>
-  </div>
-  <div class="footer">
-    <p><strong>MuniSupport Chiquinquirá</strong> &bull; Sistema de Atención al Ciudadano<br>
-    Este es un mensaje automático, por favor no responda a este correo.</p>
-  </div>
+    <div class="footer"><p>MuniSupport Chiquinquirá &bull; Sistema de Gestión de Solicitudes</p></div>
 </div></body></html>`;
 
 // ─── Plantilla 3: Mensaje urgente del funcionario ──────────────────────────
 const templateMensajeDirecto = ({ nombre, titulo, codigoAcceso, mensaje }) => `
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
 <body><div class="wrapper">
-  <div class="header">
-    <h1>🏛️ MuniSupport Chiquinquirá</h1>
-    <p>Sistema de Gestión de Solicitudes Ciudadanas</p>
-  </div>
-  <div class="body">
-    <h2>📩 Tiene un nuevo mensaje en su solicitud.</h2>
-    <p>
-      Estimado(a) <strong>${nombre || 'ciudadano(a)'}</strong>, el equipo encargado de 
-      gestionar su solicitud <em>"${titulo}"</em> le ha enviado el siguiente comunicado:
-    </p>
-    <div class="message-box">
-      <p>${mensaje}</p>
+    <div class="header">
+        <h1>🏛️ MuniSupport Chiquinquirá</h1>
+        <p>Sistema de Gestión de Solicitudes</p>
     </div>
-    <p>
-      Para responder o conocer más detalles sobre su caso, puede ingresar a nuestra 
-      plataforma con su código de seguimiento:
-    </p>
-    <div class="code-box"><span>${codigoAcceso}</span></div>
-    <p>Agradecemos su colaboración y disposición durante este proceso.</p>
-  </div>
-  <div class="footer">
-    <p><strong>MuniSupport Chiquinquirá</strong> &bull; Sistema de Atención al Ciudadano<br>
-    Este es un mensaje automático, por favor no responda a este correo.</p>
-  </div>
+    <div class="body">
+        <h2>📩 Nuevo mensaje soporte, ${capitalize(nombre)}.</h2>
+        <p>El equipo encargado de gestionar su solicitud ha enviado el siguiente comunicado:</p>
+        <div class="status-box"><p>${mensaje}</p></div>
+        <table class="info-table">
+            <tr><td class="info-label">Título Caso</td><td class="info-value">${titulo}</td></tr>
+            <tr><td class="info-label">Seguimiento</td><td class="info-value"><strong>${codigoAcceso}</strong></td></tr>
+        </table>
+    </div>
+    <div class="footer"><p>MuniSupport Chiquinquirá &bull; Sistema de Gestión de Solicitudes</p></div>
 </div></body></html>`;
 
 /**
  * Envía un correo a un ciudadano externo usando una plantilla HTML.
- * @param {string} to - Correo del ciudadano
- * @param {'bienvenida'|'resolucion'|'mensaje'} tipo - Tipo de plantilla
- * @param {object} data - Datos para rellenar la plantilla
  */
 const sendMailToCitizen = async (to, tipo, data) => {
     try {
         let subject, html;
-
         if (tipo === 'bienvenida') {
-            subject = `✅ MuniSupport Chiquinquirá — Hemos recibido su solicitud`;
+            subject = `✅ MuniSupport Chiquinquirá — Solicitud Recibida`;
             html = templateBienvenida(data);
         } else if (tipo === 'resolucion') {
-            subject = `🏁 MuniSupport Chiquinquirá — Su solicitud ha sido resuelta`;
+            subject = `🏁 MuniSupport Chiquinquirá — Solicitud Resuelta`;
             html = templateResolucion(data);
         } else if (tipo === 'mensaje') {
-            subject = `📩 MuniSupport Chiquinquirá — Tiene un nuevo mensaje de soporte`;
+            subject = `📩 MuniSupport Chiquinquirá — Mensaje de Soporte`;
             html = templateMensajeDirecto(data);
-        } else {
-            return null;
-        }
+        } else return null;
 
         await sgMail.send({
             to,
@@ -200,3 +167,4 @@ module.exports = {
     sendMailToInternalUsers,
     sendMailToCitizen
 };
+
