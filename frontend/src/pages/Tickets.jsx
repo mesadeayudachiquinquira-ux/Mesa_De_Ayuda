@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, Search, Filter, Trash2, AlertTriangle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const ORGANIGRAM = {
     "Despacho del Alcalde": ["Oficina de Control Interno de Gestión", "Oficina Asesora Jurídica", "Oficina de las TICs y Gobierno Digital", "Dirección de Compras Públicas"],
@@ -17,6 +18,7 @@ const ORGANIGRAM = {
 };
 
 const Tickets = () => {
+    const { user } = useAuth();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -181,7 +183,7 @@ const Tickets = () => {
             </div>
 
             {/* Bulk Actions Bar */}
-            {selectedTickets.length > 0 && (
+            {selectedTickets.length > 0 && user?.rol === 'admin' && (
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
                     <div className="flex items-center text-blue-800">
                         <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-3">
@@ -263,12 +265,14 @@ const Tickets = () => {
                             <thead className="bg-gray-100">
                                 <tr>
                                     <th className="px-6 py-4 text-left">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                                            checked={filteredTickets.length > 0 && selectedTickets.length === filteredTickets.length}
-                                            onChange={() => handleSelectAll(filteredTickets)}
-                                        />
+                                        {user?.rol === 'admin' && (
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                                checked={filteredTickets.length > 0 && selectedTickets.length === filteredTickets.length}
+                                                onChange={() => handleSelectAll(filteredTickets)}
+                                            />
+                                        )}
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Asunto / Solicitante</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
@@ -281,12 +285,14 @@ const Tickets = () => {
                                 {filteredTickets.map(ticket => (
                                     <tr key={ticket._id} className={`hover:bg-gray-50 transition-colors ${selectedTickets.includes(ticket._id) ? 'bg-blue-50/50' : ''}`}>
                                         <td className="px-6 py-4">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                                                checked={selectedTickets.includes(ticket._id)}
-                                                onChange={() => handleSelectTicket(ticket._id)}
-                                            />
+                                            {user?.rol === 'admin' && (
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                                    checked={selectedTickets.includes(ticket._id)}
+                                                    onChange={() => handleSelectTicket(ticket._id)}
+                                                />
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm font-medium text-gray-900 mb-1">{ticket?.titulo || 'Sin Título'}</div>

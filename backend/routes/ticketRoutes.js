@@ -38,7 +38,7 @@ router.get('/', protect, getTickets);
 router.post('/bulk-delete', protect, admin, deleteMultipleTickets);
 router.get('/:id', protect, getTicketById);
 router.post('/', protect, upload.single('adjunto'), createTicket);
-router.put('/:id', protect, admin, updateTicket);
+router.put('/:id', protect, updateTicket);
 router.delete('/:id', protect, admin, deleteTicket);
 router.get('/test/alive', (req, res) => res.json({ message: 'Rutas de tickets activas', version: '1.0.1-debug' }));
 router.post('/:id/mensajes', protect, addMessage);

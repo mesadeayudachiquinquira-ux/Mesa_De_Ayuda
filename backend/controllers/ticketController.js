@@ -15,13 +15,8 @@ const generateTrackingCode = () => {
 // @route   GET /api/tickets
 // @access  Private
 const getTickets = async (req, res) => {
-    if (req.user.rol === 'admin') {
-        const tickets = await Ticket.find({}).populate('creadoPor', 'nombre email');
-        res.json(tickets);
-    } else {
-        const tickets = await Ticket.find({ creadoPor: req.user._id });
-        res.json(tickets);
-    }
+    const tickets = await Ticket.find({}).populate('creadoPor', 'nombre email');
+    res.json(tickets);
 };
 
 // @desc    Obtener ticket por ID
@@ -33,15 +28,6 @@ const getTicketById = async (req, res) => {
         .populate('asignadoA', 'nombre');
 
     if (ticket) {
-        // Si es un usuario normal, solo puede ver sus propios tickets
-        // Para tickets públicos (creadoPor es nulo), un usuario normal (no admin) 
-        // no debería tener acceso a través de esta ruta privada.
-        if (req.user.rol !== 'admin') {
-            if (!ticket.creadoPor || ticket.creadoPor._id.toString() !== req.user._id.toString()) {
-                return res.status(401).json({ message: 'No Autorizado' });
-            }
-        }
-
         // Traer los mensajes del ticket, poblando solo si el usuario existe (para evitar errores con tickets públicos/anónimos)
         const messages = await Message.find({ ticketId: req.params.id }).populate('usuarioId', 'nombre rol');
 
@@ -188,7 +174,7 @@ const createPublicTicket = async (req, res) => {
 // @route   PUT /api/tickets/:id
 // @access  Private/Admin
 const updateTicket = async (req, res) => {
-    const { estado, asignadoA, comentarioResolucion } = req.body;
+    const { estado, asignadoA, comentarioResolucion, atendidoPorNombre } = req.body;
 
     const ticket = await Ticket.findById(req.params.id);
 
@@ -199,6 +185,9 @@ const updateTicket = async (req, res) => {
         }
         if (comentarioResolucion) {
             ticket.comentarioResolucion = comentarioResolucion;
+        }
+        if (atendidoPorNombre) {
+            ticket.atendidoPorNombre = atendidoPorNombre;
         }
 
         const updatedTicket = await ticket.save();
@@ -235,13 +224,6 @@ const addMessage = async (req, res) => {
     const ticket = await Ticket.findById(req.params.id);
 
     if (ticket) {
-        // Verificar si el usuario tiene permiso sobre este ticket
-        if (req.user.rol !== 'admin') {
-            if (!ticket.creadoPor || ticket.creadoPor.toString() !== req.user._id.toString()) {
-                return res.status(401).json({ message: 'No Autorizado' });
-            }
-        }
-
         const newMessage = await Message.create({
             ticketId: req.params.id,
             usuarioId: req.user._id,
@@ -250,25 +232,23 @@ const addMessage = async (req, res) => {
 
         res.status(201).json(newMessage);
 
-        // Notificar al otro participante
+        // Notificar a los correspondientes
         try {
-            // Si el que escribe NO es el admin, notificar al admin
-            if (req.user.rol !== 'admin') {
+            // Si el ticket es interno y quien escribe NO es su creador, notificar al creador
+            if (ticket.creadoPor && req.user._id.toString() !== ticket.creadoPor.toString()) {
+                await Notification.create({
+                    usuarioId: ticket.creadoPor,
+                    mensaje: `Soporte ha respondido a tu ticket: ${ticket.titulo}`,
+                    tipo: 'nuevo_mensaje',
+                    link: `/tickets/${ticket._id}`
+                });
+            } else {
+                // Si quien escribe es el creador del ticket o es un ticket público, notificar a los admins/asignado
                 const usersToNotify = ticket.asignadoA ? [ticket.asignadoA] : (await User.find({ rol: 'admin' })).map(u => u._id);
                 for (const userId of usersToNotify) {
                     await Notification.create({
                         usuarioId: userId,
                         mensaje: `Nuevo mensaje de ${req.user.nombre} en: ${ticket.titulo}`,
-                        tipo: 'nuevo_mensaje',
-                        link: `/tickets/${ticket._id}`
-                    });
-                }
-            } else {
-                // Si el que escribe ES el admin, notificar al creador del ticket (si es interno)
-                if (ticket.creadoPor) {
-                    await Notification.create({
-                        usuarioId: ticket.creadoPor,
-                        mensaje: `Soporte ha respondido a tu ticket: ${ticket.titulo}`,
                         tipo: 'nuevo_mensaje',
                         link: `/tickets/${ticket._id}`
                     });

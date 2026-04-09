@@ -62,6 +62,10 @@ const ticketSchema = new mongoose.Schema({
     comentarioResolucion: {
         type: String,
         required: false,
+    },
+    atendidoPorNombre: {
+        type: String,
+        required: false,
     }
 });
 

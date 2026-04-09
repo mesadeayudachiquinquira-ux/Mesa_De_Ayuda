@@ -30,6 +30,7 @@ const TicketDetail = () => {
     // Recovery/Resolution states
     const [showResolutionModal, setShowResolutionModal] = useState(false);
     const [resolutionComment, setResolutionComment] = useState('');
+    const [atendidoPorNombre, setAtendidoPorNombre] = useState(user?.nombre || '');
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -117,8 +118,6 @@ const TicketDetail = () => {
     };
 
     const handleChangeStatus = async (newStatus) => {
-        if (user.rol !== 'admin') return;
-
         if (newStatus === 'cerrado') {
             setShowResolutionModal(true);
             return;
@@ -133,12 +132,13 @@ const TicketDetail = () => {
     };
 
     const handleFinalClose = async () => {
-        if (!resolutionComment.trim()) return;
+        if (!resolutionComment.trim() || !atendidoPorNombre.trim()) return;
         setUpdatingStatus(true);
         try {
             await api.put(`/tickets/${id}`, {
                 estado: 'cerrado',
-                comentarioResolucion: resolutionComment
+                comentarioResolucion: resolutionComment,
+                atendidoPorNombre: atendidoPorNombre
             });
             setShowResolutionModal(false);
             fetchTicketInfo();
@@ -188,18 +188,18 @@ const TicketDetail = () => {
                     </div>
                 </div>
 
-                {/* Admin Controls */}
-                {user?.rol === 'admin' && (
-                    <div className="flex items-center gap-2">
-                        <select
-                            className="input-field text-sm font-semibold !py-1.5"
-                            value={ticket.estado}
-                            onChange={(e) => handleChangeStatus(e.target.value)}
-                        >
-                            <option value="abierto">Abierto</option>
-                            <option value="en_progreso">En Progreso</option>
-                            <option value="cerrado">Cerrado</option>
-                        </select>
+                {/* Agentes y Admin Controls */}
+                <div className="flex items-center gap-2">
+                    <select
+                        className="input-field text-sm font-semibold !py-1.5"
+                        value={ticket.estado}
+                        onChange={(e) => handleChangeStatus(e.target.value)}
+                    >
+                        <option value="abierto">Abierto</option>
+                        <option value="en_progreso">En Progreso</option>
+                        <option value="cerrado">Cerrado</option>
+                    </select>
+                    {user?.rol === 'admin' && (
                         <button
                             onClick={() => setShowDeleteModal(true)}
                             className="p-2 text-gray-400 hover:text-red-600 bg-white hover:bg-red-50 border border-gray-200 rounded-lg transition-all shadow-sm"
@@ -207,8 +207,8 @@ const TicketDetail = () => {
                         >
                             <Trash2 className="h-5 w-5" />
                         </button>
-                    </div>
-                )}
+                     )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -235,6 +235,11 @@ const TicketDetail = () => {
                                 <p className="text-green-900 text-sm whitespace-pre-wrap italic">
                                     "{ticket.comentarioResolucion}"
                                 </p>
+                                {ticket.atendidoPorNombre && (
+                                    <div className="text-xs font-semibold text-green-800 mt-3 pt-3 border-t border-green-200">
+                                        Resuelto por: {ticket.atendidoPorNombre}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -406,20 +411,37 @@ const TicketDetail = () => {
                                     <h3 className="text-xl font-bold text-gray-900">Finalizar Ticket</h3>
                                 </div>
                                 <p className="text-sm text-gray-500 mb-4">
-                                    Por favor describe qué se hizo para solucionar el problema. Este comentario será visible para el equipo (y para el usuario si es externo).
+                                    Por favor describe qué se hizo para solucionar el problema y tu nombre. Esto será visible para el equipo (y para el usuario externo).
                                 </p>
-                                <textarea
-                                    className="input-field min-h-[120px] resize-none"
-                                    placeholder="Ej. Se reemplazó el cable de red dañado y se configuró la IP estática..."
-                                    value={resolutionComment}
-                                    onChange={(e) => setResolutionComment(e.target.value)}
-                                    autoFocus
-                                />
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tu nombre (Funcionario que atiende)</label>
+                                        <input
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="Ej. Juan Pérez"
+                                            value={atendidoPorNombre}
+                                            onChange={(e) => setAtendidoPorNombre(e.target.value)}
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Detalle de la solución</label>
+                                        <textarea
+                                            className="input-field min-h-[100px] resize-none"
+                                            placeholder="Ej. Se reemplazó el cable de red dañado y se configuró la IP estática..."
+                                            value={resolutionComment}
+                                            onChange={(e) => setResolutionComment(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             <div className="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3">
                                 <button
                                     type="button"
-                                    disabled={updatingStatus || !resolutionComment.trim()}
+                                    disabled={updatingStatus || !resolutionComment.trim() || !atendidoPorNombre.trim()}
                                     onClick={handleFinalClose}
                                     className="btn-primary px-6"
                                 >
