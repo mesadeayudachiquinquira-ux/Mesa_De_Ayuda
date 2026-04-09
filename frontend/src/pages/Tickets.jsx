@@ -275,8 +275,8 @@ const Tickets = () => {
                 </div>
             </div>
 
-            {/* Estadisticas de Resolución (solo en archivo cerrados) */}
-            {filterStatus === 'closed' && closedTickets.length > 0 && topResponsables.length > 0 && (
+            {/* Estadisticas de Resolución (solo admin en archivo cerrados) */}
+            {user?.rol === 'admin' && filterStatus === 'closed' && closedTickets.length > 0 && topResponsables.length > 0 && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 animate-in fade-in slide-in-from-top-4">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wider flex items-center">
