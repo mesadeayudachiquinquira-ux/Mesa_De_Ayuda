@@ -251,10 +251,15 @@ const TicketDetail = () => {
                                     Archivos Adjuntos
                                 </h4>
                                 <div className="flex flex-wrap gap-3">
-                                    {ticket.adjuntos.map((fileUrl, index) => (
+                                    {ticket.adjuntos.map((fileUrl, index) => {
+                                        const finalUrl = fileUrl.startsWith('http') 
+                                            ? fileUrl 
+                                            : `http://${window.location.hostname}:5000${fileUrl}`;
+                                        
+                                        return (
                                         <a
                                             key={fileUrl}
-                                            href={`http://${window.location.hostname}:5000${fileUrl}`}
+                                            href={finalUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex items-center px-4 py-2 border border-gray-200 rounded-lg text-sm text-blue-600 hover:bg-blue-50 transition-colors"
@@ -262,7 +267,8 @@ const TicketDetail = () => {
                                             <Paperclip className="h-4 w-4 mr-2" />
                                             Ver archivo {index + 1}
                                         </a>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
