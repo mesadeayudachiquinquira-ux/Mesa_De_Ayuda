@@ -1,27 +1,11 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 
-const createTransporter = async () => {
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        return nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.gmail.com',
-            port: process.env.SMTP_PORT || 587,
-            secure: process.env.SMTP_SECURE === 'true' || false,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
-    } else {
-        const testAccount = await nodemailer.createTestAccount();
-        console.log('⚠️ Usando cuenta de correo de prueba (Ethereal)');
-        return nodemailer.createTransport({
-            host: 'smtp.ethereal.email',
-            port: 587,
-            secure: false,
-            auth: { user: testAccount.user, pass: testAccount.pass },
-        });
-    }
-};
+// Inicializar SendGrid con la API key (evita el bloqueo de puertos SMTP en Render)
+if (process.env.SMTP_PASS) {
+    sgMail.setApiKey(process.env.SMTP_PASS);
+}
+
+const FROM_EMAIL = process.env.SMTP_FROM || 'mesadeayudachiquinquira@gmail.com';
 
 // ─── Estilos base compartidos por todas las plantillas ─────────────────────
 const baseStyles = `
@@ -161,7 +145,6 @@ const templateMensajeDirecto = ({ nombre, titulo, codigoAcceso, mensaje }) => `
  */
 const sendMailToCitizen = async (to, tipo, data) => {
     try {
-        const transporter = await createTransporter();
         let subject, html;
 
         if (tipo === 'bienvenida') {
@@ -177,40 +160,38 @@ const sendMailToCitizen = async (to, tipo, data) => {
             return null;
         }
 
-        const mailOptions = {
-            from: `"MuniSupport Chiquinquirá" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        await sgMail.send({
             to,
+            from: { email: FROM_EMAIL, name: 'MuniSupport Chiquinquirá' },
             subject,
             html,
-        };
+        });
 
-        const info = await transporter.sendMail(mailOptions);
         console.log(`✉️ Correo ciudadano [${tipo}] enviado a: ${to}`);
-        return info;
+        return true;
     } catch (error) {
-        console.error('❌ Error enviando correo al ciudadano:', error);
+        console.error('❌ Error enviando correo al ciudadano:', error?.response?.body || error.message);
         return null;
     }
 };
 
 /**
- * Envía un correo electrónico a funcionarios internos.
+ * Envía un correo a funcionarios internos.
  */
 const sendMailToInternalUsers = async (to, subject, text, html) => {
     try {
-        const transporter = await createTransporter();
-        const mailOptions = {
-            from: `"MuniSupport Chiquinquirá" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@mesadeayuda.local'}>`,
-            to: Array.isArray(to) ? to.join(', ') : to,
+        const recipients = Array.isArray(to) ? to : [to];
+        await sgMail.send({
+            to: recipients,
+            from: { email: FROM_EMAIL, name: 'MuniSupport Chiquinquirá' },
             subject,
             text,
-            html: html || text
-        };
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✉️ Correo interno enviado a: ${mailOptions.to}`);
-        return info;
+            html: html || text,
+        });
+        console.log(`✉️ Correo interno enviado a: ${recipients.join(', ')}`);
+        return true;
     } catch (error) {
-        console.error('❌ Error enviando el correo interno:', error);
+        console.error('❌ Error enviando el correo interno:', error?.response?.body || error.message);
         return null;
     }
 };
