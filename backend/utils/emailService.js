@@ -1,10 +1,6 @@
-const sgMail = require('@sendgrid/mail');
+const axios = require('axios');
 
-// Inicializar SendGrid con la API key
-if (process.env.SMTP_PASS) {
-    sgMail.setApiKey(process.env.SMTP_PASS);
-}
-
+const BRIDGE_URL = process.env.GMAIL_BRIDGE_URL;
 const FROM_EMAIL = process.env.SMTP_FROM || 'mesadeayudachiquinquira@gmail.com';
 
 /**
@@ -15,7 +11,37 @@ const capitalize = (str) => {
     return str.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
+/**
+ * Envía el correo usando el puente de Google Apps Script (HTTP POST)
+ */
+const sendViaBridge = async (to, subject, html) => {
+    if (!BRIDGE_URL) {
+        console.error('❌ Error: GMAIL_BRIDGE_URL no está configurada.');
+        return false;
+    }
+
+    try {
+        const response = await axios.post(BRIDGE_URL, {
+            to,
+            subject,
+            html
+        });
+        
+        if (response.data && response.data.status === 'ok') {
+            console.log(`✉️ OK: Correo enviado a ${to} vía Gmail Bridge`);
+            return true;
+        } else {
+            console.error('❌ FAIL: Error en el puente:', response.data);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ FAIL: Error de conexión con Gmail Bridge:', error.message);
+        return false;
+    }
+};
+
 // ─── Estilos base ultra-compatibles ────────────────────────────────────────
+// ... (mismos estilos de antes)
 const baseStyles = `
     body { margin: 0; padding: 0; background-color: #f4f7f9; font-family: Arial, sans-serif; }
     .wrapper { width: 100%; max-width: 600px; margin: 20px auto; background-color: #ffffff; border: 1px solid #d1d5db; }
@@ -35,7 +61,7 @@ const baseStyles = `
     .footer p { margin: 0; font-size: 12px; color: #9ca3af; }
 `;
 
-// ─── Plantillas simplificadas (Sin Emojis) ──────────────────────────────────
+// ─── Plantillas simplificadas ──────────────────────────────────────────────
 const templateBienvenida = ({ nombre, titulo, dependencia, codigoAcceso }) => `
 <!DOCTYPE html><html><head><meta charset="UTF-8"><style>${baseStyles}</style></head>
 <body><div class="wrapper">
@@ -99,56 +125,34 @@ const templateMensajeDirecto = ({ nombre, titulo, codigoAcceso, mensaje }) => `
 </div></body></html>`;
 
 /**
- * Envío de correos ciudadano
+ * Envío de correos ciudadano vía Bridge
  */
 const sendMailToCitizen = async (to, tipo, data) => {
-    try {
-        let subject, html;
-        if (tipo === 'bienvenida') {
-            subject = 'MuniSupport Chiquinquira - Solicitud Recibida';
-            html = templateBienvenida(data);
-        } else if (tipo === 'resolucion') {
-            subject = 'MuniSupport Chiquinquira - Solicitud Resuelta';
-            html = templateResolucion(data);
-        } else if (tipo === 'mensaje') {
-            subject = 'MuniSupport Chiquinquira - Mensaje de Soporte';
-            html = templateMensajeDirecto(data);
-        } else return null;
+    let subject, html;
+    if (tipo === 'bienvenida') {
+        subject = 'MuniSupport Chiquinquira - Solicitud Recibida';
+        html = templateBienvenida(data);
+    } else if (tipo === 'resolucion') {
+        subject = 'MuniSupport Chiquinquira - Solicitud Resuelta';
+        html = templateResolucion(data);
+    } else if (tipo === 'mensaje') {
+        subject = 'MuniSupport Chiquinquira - Mensaje de Soporte';
+        html = templateMensajeDirecto(data);
+    } else return null;
 
-        const response = await sgMail.send({
-            to,
-            from: { email: FROM_EMAIL, name: 'MuniSupport Chiquinquira' },
-            subject,
-            html,
-        });
-
-        console.log(`✉️ OK: Correo [${tipo}] enviado a ${to}`);
-        return true;
-    } catch (error) {
-        console.error('❌ FAIL: Error SendGrid:', error?.response?.body || error.message);
-        return null;
-    }
+    return await sendViaBridge(to, subject, html);
 };
 
 /**
- * Envío de correos internos
+ * Envío de correos internos vía Bridge
  */
 const sendMailToInternalUsers = async (to, subject, text, html) => {
-    try {
-        const recipients = Array.isArray(to) ? to : [to];
-        await sgMail.send({
-            to: recipients,
-            from: { email: FROM_EMAIL, name: 'MuniSupport Chiquinquira' },
-            subject: subject.replace(/[^\x00-\x7F]/g, ""), // Limpiar emojis del asunto
-            text,
-            html: html || text,
-        });
-        console.log(`✉️ OK: Correo interno enviado a ${recipients.join(', ')}`);
-        return true;
-    } catch (error) {
-        console.error('❌ FAIL: Error Interno SendGrid:', error?.response?.body || error.message);
-        return null;
+    const recipients = Array.isArray(to) ? to : [to];
+    // Enviamos a cada destinatario por separado para asegurar la entrega
+    for (const recipient of recipients) {
+        await sendViaBridge(recipient, subject, html || text);
     }
+    return true;
 };
 
 module.exports = { sendMailToInternalUsers, sendMailToCitizen };
