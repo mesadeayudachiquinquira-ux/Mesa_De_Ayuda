@@ -14,7 +14,7 @@ const {
     verifyPin
 } = require('../controllers/ticketController');
 const { protect, admin } = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { upload } = require('../middleware/uploadMiddleware');
 const rateLimit = require('express-rate-limit');
 
 // Limitador para prevenir fuerza bruta en los PINs (máximo 10 intentos cada 15 min por IP)

@@ -5,6 +5,8 @@ const User = require('../models/User');
 const AccessCode = require('../models/AccessCode');
 const crypto = require('crypto');
 const { sendMailToInternalUsers, sendMailToCitizen } = require('../utils/emailService');
+const { uploadToCloudinary } = require('../middleware/uploadMiddleware');
+
 
 // Helper para generar código de seguimiento único (6 caracteres)
 const generateTrackingCode = () => {
@@ -71,7 +73,15 @@ const createTicket = async (req, res) => {
         const { titulo, descripcion, dependencia, seccion } = req.body;
 
         // Archivo adjunto (si lo hay)
-        const adjuntoPath = req.file ? req.file.path : null;
+        // Subir archivo adjunto a Cloudinary si lo hay
+        let adjuntoPath = null;
+        if (req.file) {
+            try {
+                adjuntoPath = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+            } catch (uploadErr) {
+                console.error('Error subiendo adjunto a Cloudinary:', uploadErr);
+            }
+        }
 
         if (!titulo || !descripcion || !dependencia) {
             return res.status(400).json({ message: 'Por favor, agregue título, descripción y dependencia' });
@@ -124,8 +134,15 @@ const createPublicTicket = async (req, res) => {
             }
         }
 
-        // Archivo adjunto (si lo hay)
-        const adjuntoPath = req.file ? req.file.path : null;
+        // Subir archivo adjunto a Cloudinary si lo hay
+        let adjuntoPath = null;
+        if (req.file) {
+            try {
+                adjuntoPath = await uploadToCloudinary(req.file.buffer, req.file.mimetype);
+            } catch (uploadErr) {
+                console.error('Error subiendo adjunto (ticket público) a Cloudinary:', uploadErr);
+            }
+        }
 
         const ticket = await Ticket.create({
             titulo,
