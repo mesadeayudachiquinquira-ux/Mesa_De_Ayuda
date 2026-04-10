@@ -95,7 +95,7 @@ const PublicTracking = () => {
             setMessages(data.messages);
             // Si no estaba en la URL, lo ponemos para que el polling funcione con el código correcto
             if (!urlCodigo) {
-                navigate(`/seguimiento/${accessCode}`, { replace: true });
+                navigate(`/public-tracking/${accessCode}`, { replace: true });
             }
         } catch (err) {
             const errorData = err.response?.data;
@@ -177,7 +177,7 @@ const PublicTracking = () => {
                         
                         <button
                             type="button"
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/')}
                             className="w-full py-3 text-gray-500 text-sm font-medium hover:text-gray-800 transition-colors"
                         >
                             <span>Volver al portal de inicio</span>
@@ -195,7 +195,7 @@ const PublicTracking = () => {
                 <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/')}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         >
                             <ArrowLeft size={20} className="text-gray-500" />

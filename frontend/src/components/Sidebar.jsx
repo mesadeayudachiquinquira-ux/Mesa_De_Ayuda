@@ -21,13 +21,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     };
 
     const navLinks = [
-        { name: 'Dashboard', to: '/', icon: LayoutDashboard },
-        { name: 'Tickets', to: '/tickets', icon: Ticket },
+        { name: 'Dashboard', to: '/app', icon: LayoutDashboard },
+        { name: 'Tickets', to: '/app/tickets', icon: Ticket },
     ];
 
     if (user?.rol === 'admin') {
-        navLinks.push({ name: 'Usuarios', to: '/usuarios', icon: Users });
-        navLinks.push({ name: 'Oficinas', to: '/oficinas', icon: Building2 });
+        navLinks.push({ name: 'Usuarios', to: '/app/usuarios', icon: Users });
+        navLinks.push({ name: 'Oficinas', to: '/app/oficinas', icon: Building2 });
     }
 
     return (

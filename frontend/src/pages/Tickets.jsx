@@ -384,7 +384,7 @@ const Tickets = () => {
                                             {ticket?.fechaCreación ? new Date(ticket.fechaCreación).toLocaleDateString() : 'N/A'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <Link to={`/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md transition-colors hover:bg-blue-100 font-semibold">
+                                            <Link to={`/app/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md transition-colors hover:bg-blue-100 font-semibold">
                                                 Ver detalles
                                             </Link>
                                         </td>

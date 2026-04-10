@@ -132,13 +132,13 @@ const PublicTicket = () => {
 
                             <div className="space-y-3">
                                 <button
-                                    onClick={() => navigate(`/seguimiento/${accessInfo.code}`)}
+                                    onClick={() => navigate(`/public-tracking/${accessInfo.code}`)}
                                     className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-[0.98]"
                                 >
                                     <span>Ir al Seguimiento ahora</span>
                                 </button>
                                 <button
-                                    onClick={() => navigate('/login')}
+                                    onClick={() => navigate('/')}
                                     className="w-full py-3 text-gray-500 font-medium hover:text-gray-700 transition-colors"
                                 >
                                     <span>Volver al Inicio</span>

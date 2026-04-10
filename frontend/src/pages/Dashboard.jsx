@@ -77,7 +77,7 @@ const Dashboard = () => {
                     <p className="text-gray-500 mt-1">Aquí tienes un resumen de la actividad de tus tickets.</p>
                 </div>
                 <div className="mt-4 sm:mt-0">
-                    <Link to="/tickets" className="btn-primary inline-flex items-center">
+                    <Link to="/app/tickets" className="btn-primary inline-flex items-center">
                         <TicketIcon className="h-5 w-5 mr-2" />
                         Ver todos los tickets
                     </Link>
@@ -158,7 +158,7 @@ const Dashboard = () => {
                                                 {new Date(ticket.fechaCreación).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <Link to={`/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 font-semibold">
+                                                <Link to={`/app/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 font-semibold">
                                                     Ver detalle &rarr;
                                                 </Link>
                                             </td>

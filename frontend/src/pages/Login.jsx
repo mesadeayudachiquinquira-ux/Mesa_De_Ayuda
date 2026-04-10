@@ -18,7 +18,7 @@ const Login = () => {
         setError('');
         try {
             await login(email, password);
-            navigate('/');
+            navigate('/app');
         } catch (err) {
             setError(err.response?.data?.message || 'Error al iniciar sesión');
         } finally {
@@ -28,6 +28,12 @@ const Login = () => {
 
     return (
         <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="absolute top-8 left-8">
+                <Link to="/" className="flex items-center text-sm font-bold text-gray-500 hover:text-blue-600 transition-colors bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-200 shadow-sm">
+                    &larr; Volver al Inicio
+                </Link>
+            </div>
+            
             <div className="sm:mx-auto sm:w-full sm:max-w-md animate-fade-in relative z-10">
                 <div className="flex justify-center mb-6">
                     <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/30">
@@ -35,28 +41,28 @@ const Login = () => {
                     </div>
                 </div>
                 <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">
-                    MuniSupport Chiquinquirá
+                    Acceso Personal
                 </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Inicia sesión para gestionar tus tickets
+                <p className="mt-2 text-center text-sm text-gray-600 font-medium">
+                    Gestión Interna Alcaldía Chiquinquirá
                 </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md animate-slide-up relative z-10">
-                <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100">
+                <div className="bg-white/80 backdrop-blur-md py-8 px-4 shadow-2xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-white">
 
                     {error && (
                         <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                            <p className="text-sm text-red-700">{error}</p>
+                            <p className="text-sm text-red-700 font-bold">{error}</p>
                         </div>
                     )}
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-bold text-gray-700 ml-1">
                                 Correo Electrónico
                             </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="mt-1 relative rounded-md">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Mail className="h-5 w-5 text-gray-400" />
                                 </div>
@@ -72,10 +78,10 @@ const Login = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-sm font-bold text-gray-700 ml-1">
                                 Contraseña
                             </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="mt-1 relative rounded-md">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <Lock className="h-5 w-5 text-gray-400" />
                                 </div>
@@ -90,10 +96,10 @@ const Login = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between px-1">
                             <div className="flex items-center">
-                                <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer" />
-                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
+                                <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer" />
+                                <label htmlFor="remember-me" className="ml-2 block text-sm font-bold text-gray-600 cursor-pointer">
                                     Recordarme
                                 </label>
                             </div>
@@ -103,32 +109,23 @@ const Login = () => {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-blue-200 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transform transition-all active:scale-[0.98] disabled:opacity-70"
                             >
                                 {isLoading ? (
                                     <Loader2 className="animate-spin h-5 w-5 text-white" />
                                 ) : (
-                                    'Ingresar'
+                                    'INGRESAR AL PANEL'
                                 )}
                             </button>
                         </div>
                     </form>
 
-                    <div className="mt-8 pt-6 border-t border-gray-100">
-                        <p className="text-center text-gray-500 mb-4 text-sm font-medium">
-                            ¿Necesitas ayuda técnica inmediata?
-                        </p>
+                    <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col gap-3">
                         <Link
-                            to="/nuevo-ticket"
-                            className="w-full flex justify-center py-2.5 px-4 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all text-sm mb-2"
+                            to="/public-ticket"
+                            className="w-full text-center py-2 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
                         >
-                            Crear Ticket de Soporte (Portal Público)
-                        </Link>
-                        <Link
-                            to="/seguimiento"
-                            className="w-full flex justify-center py-2.5 px-4 bg-gray-50 border-2 border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100/50 transition-all text-sm"
-                        >
-                            Consultar Estado de Ticket
+                            &iquest;Eres ciudadano? Crea un ticket aqu&iacute;
                         </Link>
                     </div>
                 </div>

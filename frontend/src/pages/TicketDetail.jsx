@@ -156,7 +156,7 @@ const TicketDetail = () => {
         setUpdatingStatus(true);
         try {
             await api.delete(`/tickets/${id}`);
-            navigate('/tickets');
+            navigate('/app/tickets');
         } catch (error) {
             console.error('Error al borrar ticket:', error);
             alert(error.response?.data?.message || 'No se pudo eliminar el ticket.');
@@ -175,7 +175,7 @@ const TicketDetail = () => {
             {/* Header Area */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center">
-                    <Link to="/tickets" className="mr-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+                    <Link to="/app/tickets" className="mr-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                     <div>
