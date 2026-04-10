@@ -14,6 +14,7 @@ import {
     Trash2,
     AlertTriangle
 } from 'lucide-react';
+import { socket } from '../socket';
 
 const TicketDetail = () => {
     const { id } = useParams();
@@ -53,14 +54,24 @@ const TicketDetail = () => {
 
     // Polling interval — uses ref to avoid stale closures
     useEffect(() => {
-        const interval = setInterval(() => {
-            const currentTicket = ticketRef.current;
-            if (currentTicket && currentTicket.estado !== 'cerrado') {
-                fetchMessagesOnly();
-            }
-        }, 5000);
+        if (!id) return;
+        
+        socket.connect();
+        socket.emit('joinTicket', id);
 
-        return () => clearInterval(interval);
+        const handleNewMessage = (mensaje) => {
+            setMessages((prev) => {
+                if (prev.some(m => m._id === mensaje._id)) return prev;
+                return [...prev, mensaje];
+            });
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newMessage', handleNewMessage);
+            socket.disconnect();
+        };
     }, [id]);
 
     useEffect(() => {
@@ -90,16 +101,7 @@ const TicketDetail = () => {
         }
     };
 
-    const fetchMessagesOnly = async () => {
-        try {
-            const { data } = await api.get(`/tickets/${id}`);
-            if (data.messages && data.messages.length !== messages.length) {
-                setMessages(data.messages);
-            }
-        } catch (error) {
-            console.error('Error polling messages:', error);
-        }
-    };
+    // fetchMessagesOnly removed since we use websockets
 
     const handleSendMessage = async (e) => {
         e.preventDefault();

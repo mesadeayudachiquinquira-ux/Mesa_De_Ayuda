@@ -268,7 +268,16 @@ const addMessage = async (req, res) => {
             mensaje,
         });
 
-        res.status(201).json(newMessage);
+        // Poblar el usuario para que el frontend reciba el nombre y rol instantáneamente
+        const populatedMessage = await Message.findById(newMessage._id).populate('usuarioId', 'nombre rol');
+
+        // Emitir mensaje por WebSockets
+        const io = req.app.get('io');
+        if (io) {
+            io.to(req.params.id).emit('newMessage', populatedMessage);
+        }
+
+        res.status(201).json(populatedMessage);
 
         // Si el funcionario marcó "Notificar al ciudadano", enviar correo de mensaje directo
         if (notificarCiudadano && ticket.esPúblico && ticket.correoContacto) {
@@ -382,6 +391,12 @@ const addPublicMessage = async (req, res) => {
             ticketId: ticket._id,
             mensaje,
         });
+
+        // Emitir mensaje por WebSockets
+        const io = req.app.get('io');
+        if (io) {
+            io.to(ticket._id.toString()).emit('newMessage', newMessage);
+        }
 
         res.status(201).json(newMessage);
 

@@ -12,6 +12,7 @@ import {
     Loader2,
     Lock
 } from 'lucide-react';
+import { socket } from '../socket';
 
 const PublicTracking = () => {
     const { codigo: urlCodigo } = useParams();
@@ -42,16 +43,27 @@ const PublicTracking = () => {
         }
     }, [initialCode]);
 
-    // Polling de mensajes solo si ya tenemos un ticket validado
+    // Conexión WebSockets
     useEffect(() => {
         if (!ticket || !accessCode) return;
 
-        const interval = setInterval(() => {
-            fetchMessages();
-        }, 5000);
+        socket.connect();
+        socket.emit('joinTicket', ticket._id);
 
-        return () => clearInterval(interval);
-    }, [ticket, accessCode]);
+        const handleNewMessage = (mensaje) => {
+            setMessages((prev) => {
+                if (prev.some(m => m._id === mensaje._id)) return prev;
+                return [...prev, mensaje];
+            });
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newMessage', handleNewMessage);
+            socket.disconnect();
+        };
+    }, [ticket?._id, accessCode]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

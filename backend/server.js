@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const compression = require('compression');
 const connectDB = require('./config/db');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -13,6 +15,30 @@ dotenv.config();
 connectDB();
 
 const app = express();
+
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: {
+        origin: '*', // En producción debes cambiar esto a tu dominio oficial
+        methods: ['GET', 'POST', 'PUT', 'DELETE']
+    }
+});
+app.set('io', io);
+
+io.on('connection', (socket) => {
+    console.log('Nuevo cliente Socket.io conectado:', socket.id);
+    
+    // Al entrar a una URL de ticket, el frontend pedirá unirse a ese canal específico
+    socket.on('joinTicket', (ticketId) => {
+        socket.join(ticketId);
+        console.log(`Socket ${socket.id} unido al ticket ${ticketId}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Cliente desconectado:', socket.id);
+    });
+});
+
 
 // Confiar en el proxy de Render (necesario para express-rate-limit)
 app.set('trust proxy', 1);
@@ -71,6 +97,6 @@ app.get('/test-server', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
