@@ -240,15 +240,17 @@ const Tickets = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Botón Exportar */}
-                    <button
-                        onClick={handleExportExcel}
-                        title="Descargar Reporte Profesional Excel con Analíticas"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95"
-                    >
-                        <Download className="h-4 w-4" />
-                        Exportar Excel
-                    </button>
+                    {/* Botón Exportar - Solo visible en la pestaña de Cerrados */}
+                    {filterStatus === 'closed' && (
+                        <button
+                            onClick={handleExportExcel}
+                            title="Descargar Reporte Profesional Excel con Analíticas"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 animate-in fade-in zoom-in duration-200"
+                        >
+                            <Download className="h-4 w-4" />
+                            Exportar Excel
+                        </button>
+                    )}
                     <button
                         onClick={() => setShowModal(true)}
                         className="btn-primary inline-flex items-center justify-center whitespace-nowrap px-6"
