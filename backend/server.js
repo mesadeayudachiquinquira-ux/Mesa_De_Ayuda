@@ -26,16 +26,22 @@ const io = socketIo(server, {
 app.set('io', io);
 
 io.on('connection', (socket) => {
-    console.log('Nuevo cliente Socket.io conectado:', socket.id);
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('Nuevo cliente Socket.io conectado:', socket.id);
+    }
     
     // Al entrar a una URL de ticket, el frontend pedirá unirse a ese canal específico
     socket.on('joinTicket', (ticketId) => {
         socket.join(ticketId);
-        console.log(`Socket ${socket.id} unido al ticket ${ticketId}`);
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`Socket ${socket.id} unido al ticket ${ticketId}`);
+        }
     });
 
     socket.on('disconnect', () => {
-        console.log('Cliente desconectado:', socket.id);
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('Cliente desconectado:', socket.id);
+        }
     });
 });
 

@@ -14,17 +14,14 @@ const protect = async (req, res, next) => {
 
             // Verificar el token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            console.log('Token decodificado:', decoded);
 
             // Obtener el usuario del token (excluyendo la contraseña)
             req.user = await User.findById(decoded.id).select('-contraseña');
 
             if (!req.user) {
-                console.log('Usuario no encontrado en la DB para el ID:', decoded.id);
                 return res.status(401).json({ message: 'No autorizado, usuario no existe' });
             }
 
-            console.log('Usuario autenticado:', req.user.nombre, 'Rol:', req.user.rol);
             next();
         } catch (error) {
             console.error('Error en authMiddleware:', error.message);

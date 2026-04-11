@@ -188,7 +188,7 @@ const createPublicTicket = async (req, res) => {
                     usuarioId: admin._id,
                     mensaje: `Nuevo ticket externo: ${titulo}`,
                     tipo: 'nuevo_ticket',
-                    link: `/tickets/${ticket._id}`
+                    link: `/app/tickets/${ticket._id}`
                 });
             }
 
@@ -252,9 +252,9 @@ const updateTicket = async (req, res) => {
             if (ticket.creadoPor && estado) {
                 await Notification.create({
                     usuarioId: ticket.creadoPor,
-                    mensaje: `Tu ticket "${ticket.titulo}" ahora está: ${estado.replace('_', ' ')}`,
+                    mensaje: `Tu ticket "${ticket.titulo}" ahora está: ${(estado || '').replace('_', ' ')}`,
                     tipo: 'estado_cambiado',
-                    link: `/tickets/${ticket._id}`
+                    link: `/app/tickets/${ticket._id}`
                 });
             }
         } catch (err) {
@@ -313,7 +313,7 @@ const addMessage = async (req, res) => {
                     usuarioId: ticket.creadoPor,
                     mensaje: `Soporte ha respondido a tu ticket: ${ticket.titulo}`,
                     tipo: 'nuevo_mensaje',
-                    link: `/tickets/${ticket._id}`
+                    link: `/app/tickets/${ticket._id}`
                 });
             } else {
                 // Si quien escribe es el creador del ticket o es un ticket público, notificar a los admins/asignado
@@ -323,7 +323,7 @@ const addMessage = async (req, res) => {
                         usuarioId: userId,
                         mensaje: `Nuevo mensaje de ${req.user.nombre} en: ${ticket.titulo}`,
                         tipo: 'nuevo_mensaje',
-                        link: `/tickets/${ticket._id}`
+                        link: `/app/tickets/${ticket._id}`
                     });
                 }
             }
@@ -341,8 +341,6 @@ const addMessage = async (req, res) => {
 const getTicketPublicByCode = async (req, res) => {
     try {
         const { codigo } = req.params;
-        console.log('[DEBUG-TRACK] === INICIO BUSQUEDA ===');
-        console.log('[DEBUG-TRACK] Código recibido:', codigo);
 
         if (!Ticket) {
             throw new Error('Modelo Ticket no cargado');
@@ -351,19 +349,12 @@ const getTicketPublicByCode = async (req, res) => {
         const ticket = await Ticket.findOne({ codigoAcceso: codigo });
 
         if (!ticket) {
-            console.log('[DEBUG-TRACK] Ticket no encontrado para el código:', codigo);
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
         }
 
         console.log('[DEBUG-TRACK] Ticket encontrado ID:', ticket._id);
 
-        if (!Message) {
-            throw new Error('Modelo Message no cargado');
-        }
-
-        // Simplificamos omitiendo el populate para descartar errores de esquema/modelo User
-        console.log('[DEBUG-TRACK] Buscando mensajes para ticket:', ticket._id);
-        const messages = await Message.find({ ticketId: ticket._id });
+        const messages = await Message.find({ ticketId: ticket._id }).populate('usuarioId', 'nombre rol');
         
         res.json({ ticket, messages });
     } catch (error) {
@@ -427,7 +418,7 @@ const addPublicMessage = async (req, res) => {
                     usuarioId: userId,
                     mensaje: `Nuevo mensaje en el ticket: ${ticket.titulo}`,
                     tipo: 'nuevo_mensaje',
-                    link: `/tickets/${ticket._id}`
+                    link: `/app/tickets/${ticket._id}`
                 });
             }
 
@@ -455,7 +446,6 @@ const addPublicMessage = async (req, res) => {
 // @access  Private/Admin
 const deleteTicket = async (req, res) => {
     try {
-        console.log('Solicitud de borrado para ticket ID:', req.params.id);
         const ticket = await Ticket.findById(req.params.id);
 
         if (!ticket) {
@@ -485,14 +475,11 @@ const deleteTicket = async (req, res) => {
 // @access  Private/Admin
 const deleteMultipleTickets = async (req, res) => {
     try {
-        console.log('REQ BODY en deleteMultipleTickets:', req.body);
         const { ids } = req.body;
 
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
             return res.status(400).json({ message: 'No se proporcionaron IDs válidos' });
         }
-
-        console.log('Solicitud de borrado masivo para IDs:', ids);
 
         // 1. Borrar todos los mensajes asociados a los tickets
         await Message.deleteMany({ ticketId: { $in: ids } });

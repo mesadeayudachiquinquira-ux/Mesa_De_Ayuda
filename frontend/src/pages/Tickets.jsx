@@ -124,7 +124,7 @@ const Tickets = () => {
     const handleBulkDelete = async () => {
         setSubmitting(true);
         try {
-            await api.post('/tickets/bulk-delete', { ids: selectedTickets });
+            await api.delete('/tickets/bulk-delete', { data: { ids: selectedTickets } });
             setSelectedTickets([]);
             setShowDeleteModal(false);
             fetchTickets();

@@ -35,7 +35,7 @@ router.post('/public/:id/mensajes', addPublicMessage); // Mantener para compatib
 
 // Rutas Privadas (Requieren Auth)
 router.get('/', protect, getTickets);
-router.post('/bulk-delete', protect, admin, deleteMultipleTickets);
+router.delete('/bulk-delete', protect, admin, deleteMultipleTickets);
 router.get('/:id', protect, getTicketById);
 router.post('/', protect, upload.single('adjunto'), createTicket);
 router.put('/:id', protect, updateTicket);
