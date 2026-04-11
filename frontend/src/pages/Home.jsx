@@ -50,7 +50,7 @@ const Home = () => {
                 <div className="text-center space-y-6">
                     <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full shadow-sm">
                         <ShieldCheck className="text-blue-600" size={18} />
-                        <span className="text-xs font-bold text-blue-900 uppercase tracking-[0.2em]">Punto de Atención Digital</span>
+                        <span className="text-xs font-bold text-blue-900 uppercase tracking-[0.2em]">Centro de Gestión Institucional</span>
                     </div>
                     
                     <h1 className="text-5xl md:text-6xl font-black text-gray-900 tracking-tight leading-tight">

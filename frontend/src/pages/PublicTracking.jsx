@@ -330,7 +330,7 @@ const PublicTracking = () => {
                                         value={newMessage}
                                         onChange={(e) => {
                                             setNewMessage(e.target.value);
-                                            socket.emit('typing', { ticketId: ticket._id, role: 'ciudadano' });
+                                            socket.emit('typing', { ticketId: ticket._id, role: 'solicitante' });
                                             clearTimeout(typingTimeoutRef.current);
                                             typingTimeoutRef.current = setTimeout(() => {
                                                 socket.emit('stopTyping', ticket._id);

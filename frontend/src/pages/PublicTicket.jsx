@@ -107,7 +107,7 @@ const PublicTicket = () => {
                     >
                         <LifeBuoy className="h-12 w-12" />
                     </motion.div>
-                    <h1 className="text-4xl font-black tracking-tight mb-2">Portal Ciudadano</h1>
+                    <h1 className="text-4xl font-black tracking-tight mb-2">MuniSupport</h1>
                     <p className="text-blue-100 font-bold opacity-80 uppercase tracking-widest text-[10px]">Gestión de Requerimientos Institucionales</p>
                 </div>
 

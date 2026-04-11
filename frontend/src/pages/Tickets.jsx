@@ -443,7 +443,7 @@ const Tickets = () => {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest ${ticket?.esPúblico ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                                                    {ticket?.esPúblico ? 'Ciudadano' : 'Soporte'}
+                                                    {ticket?.esPúblico ? 'Institucional' : 'Soporte'}
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 font-bold italic truncate max-w-[200px]">
                                                     {ticket?.esPúblico ? ticket?.nombreContacto : (ticket?.creadoPor?.nombre || 'Usuario')}

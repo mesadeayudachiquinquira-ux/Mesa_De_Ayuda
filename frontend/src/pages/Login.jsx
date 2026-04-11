@@ -180,12 +180,6 @@ const Login = () => {
                             </button>
                         </form>
 
-                        <div className="mt-12 pt-8 border-t border-slate-100 italic text-center">
-                            <p className="text-sm text-slate-400 font-bold">
-                                ¿Requiere soporte ciudadano? 
-                                <Link to="/public-ticket" className="ml-2 text-blue-600 not-italic uppercase tracking-widest text-xs font-black hover:underline">Radicar aquí</Link>
-                            </p>
-                        </div>
                     </motion.div>
                 </div>
                 
