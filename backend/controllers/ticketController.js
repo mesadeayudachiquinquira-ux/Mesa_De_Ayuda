@@ -97,6 +97,11 @@ const createTicket = async (req, res) => {
             adjuntos: adjuntoPath ? [adjuntoPath] : [],
         });
 
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('ticketsChanged');
+        }
+
         res.status(201).json(ticket);
     } catch (error) {
         console.error('Error al crear ticket:', error);
@@ -158,6 +163,11 @@ const createPublicTicket = async (req, res) => {
             adjuntos: adjuntoPath ? [adjuntoPath] : []
         });
 
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('ticketsChanged');
+        }
+
         res.status(201).json(ticket);
 
         // Enviar correo de bienvenida/recibo al ciudadano
@@ -218,6 +228,12 @@ const updateTicket = async (req, res) => {
         }
 
         const updatedTicket = await ticket.save();
+        
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('ticketsChanged');
+        }
+
         res.json(updatedTicket);
 
         // Correo de resolución al ciudadano si se cierra un ticket público
@@ -452,6 +468,11 @@ const deleteTicket = async (req, res) => {
         // 2. Borrar el ticket
         await Ticket.findByIdAndDelete(req.params.id);
 
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('ticketsChanged');
+        }
+
         res.json({ message: 'Ticket y mensajes eliminados correctamente' });
     } catch (error) {
         console.error('Error al borrar ticket:', error);
@@ -478,6 +499,11 @@ const deleteMultipleTickets = async (req, res) => {
 
         // 2. Borrar los tickets
         await Ticket.deleteMany({ _id: { $in: ids } });
+
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('ticketsChanged');
+        }
 
         res.json({ message: `${ids.length} tickets y sus mensajes eliminados correctamente` });
     } catch (error) {

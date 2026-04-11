@@ -9,6 +9,7 @@ import {
     Ticket as TicketIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { socket } from '../socket';
 
 const StatCard = ({ title, count, icon: Icon, colorClass, gradientClass }) => (
     <div className={`card relative overflow-hidden group shadow-md border-gray-200 transition-all duration-300`}>
@@ -36,35 +37,43 @@ const Dashboard = () => {
     const [recentTickets, setRecentTickets] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchDashboardData = async () => {
+        try {
+            const { data } = await api.get('/tickets');
+
+            // Calculate stats
+            const abiertos = data.filter(t => t.estado === 'abierto').length;
+            const en_progreso = data.filter(t => t.estado === 'en_progreso').length;
+            const cerrados = data.filter(t => t.estado === 'cerrado').length;
+
+            setStats({
+                total: data.length,
+                abiertos,
+                en_progreso,
+                cerrados,
+            });
+
+            // Get 5 most recent tickets
+            const recent = data.sort((a, b) => new Date(b.fechaCreación) - new Date(a.fechaCreación)).slice(0, 5);
+            setRecentTickets(recent);
+
+        } catch (error) {
+            console.error("Error cargando dashboard:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const { data } = await api.get('/tickets');
-
-                // Calculate stats
-                const abiertos = data.filter(t => t.estado === 'abierto').length;
-                const en_progreso = data.filter(t => t.estado === 'en_progreso').length;
-                const cerrados = data.filter(t => t.estado === 'cerrado').length;
-
-                setStats({
-                    total: data.length,
-                    abiertos,
-                    en_progreso,
-                    cerrados,
-                });
-
-                // Get 5 most recent tickets
-                const recent = data.sort((a, b) => new Date(b.fechaCreación) - new Date(a.fechaCreación)).slice(0, 5);
-                setRecentTickets(recent);
-
-            } catch (error) {
-                console.error("Error cargando dashboard:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchDashboardData();
+
+        // Escuchar actualizaciones globales vía WebSocket
+        socket.connect();
+        socket.on('ticketsChanged', fetchDashboardData);
+
+        return () => {
+            socket.off('ticketsChanged', fetchDashboardData);
+        };
     }, []);
 
     if (loading) return <div className="flex justify-center items-center h-64"><span className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></span></div>;

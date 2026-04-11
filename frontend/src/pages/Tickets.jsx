@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { Plus, Search, Filter, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { socket } from '../socket';
 
 const ORGANIGRAM = {
     "Despacho del Alcalde": ["Oficina de Control Interno de Gestión", "Oficina Asesora Jurídica", "Oficina de las TICs y Gobierno Digital", "Dirección de Compras Públicas"],
@@ -42,12 +43,13 @@ const Tickets = () => {
     useEffect(() => {
         fetchTickets();
 
-        // Configurar polling cada 30 segundos
-        const intervalId = setInterval(() => {
-            fetchTicketsSilently();
-        }, 30000);
+        // Escuchar actualizaciones globales vía WebSocket
+        socket.connect();
+        socket.on('ticketsChanged', fetchTicketsSilently);
 
-        return () => clearInterval(intervalId);
+        return () => {
+            socket.off('ticketsChanged', fetchTicketsSilently);
+        };
     }, []);
 
     const fetchTickets = async () => {
