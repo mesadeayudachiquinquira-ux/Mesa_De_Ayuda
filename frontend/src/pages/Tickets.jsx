@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { Plus, Search, Filter, Trash2, AlertTriangle, Download, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
+import { toast } from 'react-hot-toast';
 
 const ORGANIGRAM = {
     "Despacho del Alcalde": ["Oficina de Control Interno de Gestión", "Oficina Asesora Jurídica", "Oficina de las TICs y Gobierno Digital", "Dirección de Compras Públicas"],
@@ -97,9 +98,10 @@ const Tickets = () => {
             setShowModal(false);
             setTitulo(''); setDescripcion(''); setDependencia(''); setSeccion(''); setFile(null);
             fetchTickets();
+            toast.success('Ticket creado correctamente');
         } catch (error) {
             console.error('Error creando ticket:', error);
-            alert(error.response?.data?.message || 'Error al crear el ticket');
+            toast.error(error.response?.data?.message || 'Error al crear el ticket');
         } finally {
             setSubmitting(false);
         }
@@ -128,9 +130,10 @@ const Tickets = () => {
             setSelectedTickets([]);
             setShowDeleteModal(false);
             fetchTickets();
+            toast.success('Tickets eliminados con éxito');
         } catch (error) {
             console.error('Error en borrado masivo:', error);
-            alert('No se pudieron eliminar los tickets seleccionados.');
+            toast.error('No se pudieron eliminar los tickets seleccionados.');
         } finally {
             setSubmitting(false);
         }
@@ -182,7 +185,7 @@ const Tickets = () => {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Error descargando el reporte Excel:', error);
-            alert('No se pudo generar el reporte Excel. Verifique sus permisos.');
+            toast.error('No se pudo generar el reporte Excel. Verifique sus permisos.');
         } finally {
             setRefreshing(false);
         }

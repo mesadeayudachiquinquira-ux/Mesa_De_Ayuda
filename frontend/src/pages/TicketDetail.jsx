@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
+import { toast } from 'react-hot-toast';
 
 const TicketDetail = () => {
     const { id } = useParams();
@@ -111,7 +112,7 @@ const TicketDetail = () => {
 
         setSending(true);
         try {
-            const { data } = await api.post(`/tickets/${id}/mensajes`, { 
+            await api.post(`/tickets/${id}/mensajes`, { 
                 mensaje: newMessage,
                 notificarSolicitante: notifyCitizen 
             });
@@ -121,6 +122,7 @@ const TicketDetail = () => {
             socket.emit('stopTyping', id);
         } catch (error) {
             console.error('Error sending message:', error);
+            toast.error('No se pudo enviar el mensaje');
         } finally {
             setSending(false);
         }
@@ -128,6 +130,7 @@ const TicketDetail = () => {
 
     const handleUpdateStatus = async () => {
         setUpdatingStatus(true);
+        const loadingToast = toast.loading('Actualizando estado...');
         try {
             const { data } = await api.put(`/tickets/${id}`, { 
                 estado: status,
@@ -136,10 +139,10 @@ const TicketDetail = () => {
                 atendidoPorNombre
             });
             setTicket(data);
-            alert('Estado actualizado correctamente');
+            toast.success('Estado actualizado correctamente', { id: loadingToast });
         } catch (error) {
             console.error('Error updating status:', error);
-            alert('Error al actualizar el estado');
+            toast.error('Error al actualizar el estado', { id: loadingToast });
         } finally {
             setUpdatingStatus(false);
         }
@@ -148,10 +151,11 @@ const TicketDetail = () => {
     const handleDeleteTicket = async () => {
         try {
             await api.delete(`/tickets/${id}`);
+            toast.success('Ticket eliminado con éxito');
             navigate('/app/tickets');
         } catch (error) {
             console.error('Error deleting ticket:', error);
-            alert('Error al eliminar el ticket');
+            toast.error('Error al eliminar el ticket');
         }
     };
 
