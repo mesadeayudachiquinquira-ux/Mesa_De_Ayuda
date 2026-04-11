@@ -33,6 +33,7 @@ const Dashboard = () => {
         abiertos: 0,
         en_progreso: 0,
         cerrados: 0,
+        categorias: {}
     });
     const [recentTickets, setRecentTickets] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,12 +46,21 @@ const Dashboard = () => {
             const abiertos = data.filter(t => t.estado === 'abierto').length;
             const en_progreso = data.filter(t => t.estado === 'en_progreso').length;
             const cerrados = data.filter(t => t.estado === 'cerrado').length;
+            
+            // Frecuencia por categorías
+            const categorias = data.reduce((acc, t) => {
+                if (t.estado === 'cerrado' && t.categoria) {
+                    acc[t.categoria] = (acc[t.categoria] || 0) + 1;
+                }
+                return acc;
+            }, {});
 
             setStats({
                 total: data.length,
                 abiertos,
                 en_progreso,
                 cerrados,
+                categorias
             });
 
             // Get 5 most recent tickets
@@ -124,6 +134,37 @@ const Dashboard = () => {
                     gradientClass="from-green-400 to-green-600"
                 />
             </div>
+
+            {/* Nueva Sección: Análisis de Incidencias */}
+            {Object.keys(stats.categorias).length > 0 && (
+                <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <BarChart3 className="h-5 w-5 mr-2 text-primary-600" />
+                        Incidencias más Frecuentes (Casos Resueltos)
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.entries(stats.categorias)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 6)
+                            .map(([cat, count]) => (
+                                <div key={cat} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-bold text-gray-700 truncate pr-2">{cat}</span>
+                                        <span className="bg-primary-50 text-primary-700 text-xs font-black px-2 py-1 rounded-md">
+                                            {count} casos
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
+                                        <div 
+                                            className="bg-primary-500 h-full rounded-full transition-all duration-1000" 
+                                            style={{ width: `${Math.min((count / stats.cerrados) * 100, 100)}%` }} 
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
+                </div>
+            )}
 
             {/* Recent Tickets Section */}
             <div className="mt-8">

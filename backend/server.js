@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
+const rateLimit = require('express-rate-limit');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 // Cargar variables de entorno
@@ -62,6 +63,15 @@ io.on('connection', (socket) => {
 // Confiar en el proxy de Render (necesario para express-rate-limit)
 app.set('trust proxy', 1);
 
+// Limitador de peticiones para rutas de autenticación (evita fuerza bruta)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 20, // máximo 20 intentos por ventana
+    message: { message: 'Demasiados intentos de acceso. Por favor, intente de nuevo en 15 minutos.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // Middlewares
 app.use(helmet({
     contentSecurityPolicy: false, // Deshabilitar CSP si da problemas con recursos externos, o configurar adecuadamente
@@ -75,7 +85,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rutas
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/tickets', require('./routes/ticketRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
