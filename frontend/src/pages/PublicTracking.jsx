@@ -52,6 +52,9 @@ const PublicTracking = () => {
         socket.connect();
         socket.emit('joinTicket', ticket._id);
 
+        socket.on('connect', () => console.log('✅ Conectado al seguimiento en tiempo real'));
+        socket.on('connect_error', (err) => console.error('❌ Error de conexión Socket:', err));
+
         const handleNewMessage = (mensaje) => {
             setMessages((prev) => {
                 if (prev.some(m => m._id === mensaje._id)) return prev;

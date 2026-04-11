@@ -81,6 +81,9 @@ const TicketDetail = () => {
         socket.connect();
         socket.emit('joinTicket', id);
 
+        socket.on('connect', () => console.log('✅ Conectado al seguimiento en tiempo real'));
+        socket.on('connect_error', (err) => console.error('❌ Error de conexión Socket:', err));
+
         const handleNewMessage = (message) => {
             setMessages(prev => [...prev, message]);
             if (message && message.usuarioId && user && message.usuarioId !== user._id) {

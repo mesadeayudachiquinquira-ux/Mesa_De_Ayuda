@@ -19,10 +19,13 @@ const app = express();
 
 const server = http.createServer(app);
 const io = socketIo(server, {
+    transports: ['websocket', 'polling'],
     cors: {
-        origin: '*', // En producción debes cambiar esto a tu dominio oficial
-        methods: ['GET', 'POST', 'PUT', 'DELETE']
-    }
+        origin: '*', // En producción puedes restringirlo a tu dominio
+        methods: ['GET', 'POST']
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 app.set('io', io);
 

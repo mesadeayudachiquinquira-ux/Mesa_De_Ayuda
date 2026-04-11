@@ -5,5 +5,8 @@ import { io } from 'socket.io-client';
 const URL = import.meta.env.PROD ? undefined : 'http://localhost:5000';
 
 export const socket = io(URL, {
-    autoConnect: false, // Conectamos manually en los componentes que lo necesiten
+    autoConnect: false,
+    transports: ['websocket'],
+    reconnectionAttempts: 5,
+    timeout: 10000
 });
