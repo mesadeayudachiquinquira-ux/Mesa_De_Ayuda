@@ -106,7 +106,7 @@ const TicketDetail = () => {
 
         setSending(true);
         try {
-            const { data } = await api.post(`/tickets/${id}/messages`, { 
+            const { data } = await api.post(`/tickets/${id}/mensajes`, { 
                 mensaje: newMessage,
                 notificarSolicitante: notifyCitizen 
             });
