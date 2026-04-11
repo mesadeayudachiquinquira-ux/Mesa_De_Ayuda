@@ -510,6 +510,16 @@ const exportTicketsExcel = async (req, res, next) => {
         // Filtrar solo tickets cerrados por solicitud del usuario para sus reportes mensuales
         const tickets = await Ticket.find({ estado: 'cerrado' }).populate('creadoPor', 'nombre email');
         
+        // Configurar zona horaria para los reportes (UTC-5)
+        const formatOptions = { 
+            timeZone: 'America/Bogota', 
+            year: 'numeric', month: '2-digit', day: '2-digit', 
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false 
+        };
+        const formatter = new Intl.DateTimeFormat('es-CO', formatOptions);
+        const nowString = formatter.format(new Date());
+
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'MuniSupport System';
         workbook.lastModifiedBy = 'Admin';
@@ -546,7 +556,7 @@ const exportTicketsExcel = async (req, res, next) => {
                 solicitante: t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Funcionario Interno'),
                 dependencia: t.dependencia,
                 seccion: t.seccion || 'N/A',
-                fecha: new Date(t.fechaCreación).toLocaleString(),
+                fecha: formatter.format(new Date(t.fechaCreación)),
                 atendidoPor: t.atendidoPorNombre || 'Pendiente / No asig.'
             });
 
@@ -573,7 +583,7 @@ const exportTicketsExcel = async (req, res, next) => {
         statsSheet.getCell('A1').font = { size: 18, bold: true, color: { argb: 'FF1E3A8A' } }; // Azul oscuro profundo
         statsSheet.mergeCells('A1:B1');
 
-        statsSheet.addRow(['Generado el: ' + new Date().toLocaleString()]);
+        statsSheet.addRow(['Generado el: ' + nowString]);
         statsSheet.addRow([]);
 
         // --- SECCIÓN 1: DESEMPEÑO ---
