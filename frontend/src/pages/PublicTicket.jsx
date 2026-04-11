@@ -190,7 +190,7 @@ const PublicTicket = () => {
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Asunto de Prioridad</label>
                                     <div className="relative group">
-                                        <CornerVerticalLeft className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-blue-500" />
+                                        <CornerDownLeft className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-blue-500" />
                                         <input type="text" name="titulo" required value={formData.titulo} onChange={handleChange} placeholder="Resumen del requerimiento" className="input-field !pl-12" />
                                     </div>
                                 </div>
