@@ -274,22 +274,6 @@ const TicketDetail = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto pr-4 space-y-6">
-                            {/* Typing indicator */}
-                            {otherPersonTyping && (
-                                <div className="flex justify-start">
-                                    <div className="bg-gray-100 rounded-2xl rounded-tl-none px-5 py-3 flex items-center gap-2 shadow-sm">
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
-                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
-                                        <span className="text-xs text-gray-400 ml-1">
-                                            <span className="font-semibold text-gray-600">
-                                                {ticket?.nombreContacto || ticket?.creadoPor?.nombre || 'El solicitante'}
-                                            </span> está escribiendo...
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                            
                             {messages.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-gray-400 italic">
                                     No hay mensajes aún. Comienza la conversación abajo.
@@ -326,10 +310,28 @@ const TicketDetail = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
                                     );
                                 })
                             )}
+
+                            {/* Indicador de escritura al FINAL para que sea visible */}
+                            {otherPersonTyping && (
+                                <div className="flex justify-start animate-fade-in">
+                                    <div className="bg-gray-100 rounded-2xl rounded-tl-none px-5 py-3 flex items-center gap-2 shadow-sm border border-gray-200/50">
+                                        <div className="flex gap-1">
+                                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
+                                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
+                                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
+                                        </div>
+                                        <span className="text-xs text-gray-500 ml-1">
+                                            <span className="font-bold text-blue-600">
+                                                {ticket?.nombreContacto || ticket?.creadoPor?.nombre || 'El solicitante'}
+                                            </span> está escribiendo...
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            
                             <div ref={messagesEndRef} />
                         </div>
 

@@ -277,17 +277,6 @@ const PublicTracking = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
-                            {/* Typing indicator */}
-                            {otherPersonTyping && (
-                                <div className="flex justify-start">
-                                    <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 shadow-sm">
-                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
-                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
-                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
-                                        <span className="text-xs text-blue-500 ml-1 font-semibold">Soporte está escribiendo...</span>
-                                    </div>
-                                </div>
-                            )}
                             {messages.map((msg) => {
                                 const isAdmin = msg.usuarioId?.rol === 'admin';
                                 const isOwn = !msg.usuarioId; // Anonymous messages have no user
@@ -308,10 +297,24 @@ const PublicTracking = () => {
                                             <p className={`text-[10px] mt-2 text-right ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}>
                                                 <span>{new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </p>
-                                        </div>
                                     </div>
                                 );
                             })}
+
+                            {/* Indicador de escritura al FINAL para que sea visible */}
+                            {otherPersonTyping && (
+                                <div className="flex justify-start animate-fade-in pb-2">
+                                    <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 shadow-sm">
+                                        <div className="flex gap-1">
+                                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
+                                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
+                                            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
+                                        </div>
+                                        <span className="text-xs text-blue-600 ml-1 font-bold italic">Soporte está escribiendo...</span>
+                                    </div>
+                                </div>
+                            )}
+
                             <div ref={messagesEndRef} />
                         </div>
 
