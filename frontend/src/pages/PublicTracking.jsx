@@ -297,6 +297,7 @@ const PublicTracking = () => {
                                             <p className={`text-[10px] mt-2 text-right ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}>
                                                 <span>{new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </p>
+                                        </div>
                                     </div>
                                 );
                             })}
