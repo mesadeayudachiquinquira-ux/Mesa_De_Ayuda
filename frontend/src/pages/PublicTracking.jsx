@@ -153,8 +153,8 @@ const PublicTracking = () => {
                         <div className="bg-blue-600/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Lock className="text-blue-600 w-8 h-8" />
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900"><span>Seguimiento de Ticket</span></h2>
-                        <p className="text-gray-500 mt-2"><span>Ingresa tu código de seguridad para ver el estado y chat.</span></p>
+                        <h2 className="text-2xl font-bold text-gray-900">Seguimiento de Solicitud</h2>
+                        <p className="text-gray-500 mt-2"><span>Ingresa tu código de seguridad para ver el estado y chat con Soporte.</span></p>
                     </div>
 
                     {error && (
@@ -295,9 +295,13 @@ const PublicTracking = () => {
                                 return (
                                     <div key={msg._id || msg.fecha} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                                         <div className={`max-w-[85%] ${isOwn ? 'bg-blue-600 text-white rounded-2xl rounded-tr-none shadow-md shadow-blue-500/10' : 'bg-white text-gray-800 shadow-sm border border-gray-200 rounded-2xl rounded-tl-none'} p-4`}>
-                                            {!isOwn && (
+                                            {!isOwn ? (
                                                 <div className="text-[10px] font-black uppercase tracking-wider mb-1 text-blue-600">
-                                                    <span>Soporte Técnico {isAdmin && '✓'}</span>
+                                                    <span>Soporte {isAdmin && '✓'}</span>
+                                                </div>
+                                            ) : (
+                                                <div className="text-[10px] font-black uppercase tracking-wider mb-1 text-gray-500">
+                                                    <span>Solicitante</span>
                                                 </div>
                                             )}
                                             <p className="text-sm leading-relaxed"><span>{msg.mensaje}</span></p>

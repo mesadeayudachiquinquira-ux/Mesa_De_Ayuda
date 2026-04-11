@@ -170,23 +170,13 @@ const createPublicTicket = async (req, res) => {
 
         res.status(201).json(ticket);
 
-        // Enviar correo de bienvenida/recibo al ciudadano
-        if (correoContacto) {
-            sendMailToCitizen(correoContacto, 'bienvenida', {
-                nombre: nombreContacto,
-                titulo,
-                dependencia: accessCode.dependencia,
-                codigoAcceso
-            }).catch(err => console.error('Error enviando bienvenida al ciudadano:', err));
-        }
-
-        // Notificar a todos los administradores sobre el nuevo ticket público
+        // Notificar a soporte sobre el nuevo ticket del solicitante
         try {
             const admins = await User.find({ rol: 'admin' });
             for (const admin of admins) {
                 await Notification.create({
                     usuarioId: admin._id,
-                    mensaje: `Nuevo ticket externo: ${titulo}`,
+                    mensaje: `Nueva solicitud de: ${titulo}`,
                     tipo: 'nuevo_ticket',
                     link: `/app/tickets/${ticket._id}`
                 });
@@ -195,11 +185,11 @@ const createPublicTicket = async (req, res) => {
             // Enviar correo electrónico
             const adminEmails = admins.map(a => a.email);
             if (adminEmails.length > 0) {
-                const mailText = `Hola,\n\nSe ha recibido un nuevo ticket del público en la plataforma MuniSupport.\n\nTítulo: ${titulo}\nDependencia: ${accessCode.dependencia}\nCódigo Interno: ${ticket._id}\n\nIngresa al panel para revisarlo.`;
-                await sendMailToInternalUsers(adminEmails, `Nuevo Ticket: ${titulo}`, mailText);
+                const mailText = `Hola,\n\nSe ha recibido una nueva solicitud en la plataforma MuniSupport.\n\nTítulo: ${titulo}\nDependencia: ${accessCode.dependencia}\nCódigo Interno: ${ticket._id}\n\nIngresa al panel para revisarla.`;
+                await sendMailToInternalUsers(adminEmails, `Nueva Solicitud: ${titulo}`, mailText);
             }
         } catch (err) {
-            console.error('Error al crear notificaciones para admins:', err);
+            console.error('Error al crear notificaciones para soporte:', err);
         }
     } catch (error) {
         console.error('Error al crear ticket público:', error);
@@ -236,7 +226,7 @@ const updateTicket = async (req, res) => {
 
         res.json(updatedTicket);
 
-        // Correo de resolución al ciudadano si se cierra un ticket público
+        // Correo de resolución al solicitante si se cierra un ticket
         if (estado === 'cerrado' && ticket.esPúblico && ticket.correoContacto) {
             sendMailToCitizen(ticket.correoContacto, 'resolucion', {
                 nombre: ticket.nombreContacto,
@@ -244,7 +234,7 @@ const updateTicket = async (req, res) => {
                 codigoAcceso: ticket.codigoAcceso,
                 resolucion: comentarioResolucion || ticket.comentarioResolucion || 'Sin detalles adicionales.',
                 atendidoPor: atendidoPorNombre || ticket.atendidoPorNombre
-            }).catch(err => console.error('Error enviando resolución al ciudadano:', err));
+            }).catch(err => console.error('Error enviando resolución al solicitante:', err));
         }
 
         // Notificar al creador del ticket sobre el cambio de estado
@@ -295,28 +285,28 @@ const addMessage = async (req, res) => {
 
         res.status(201).json(populatedMessage);
 
-        // Si el funcionario marcó "Notificar al ciudadano", enviar correo de mensaje directo
+        // Si soporte marcó "Notificar al solicitante", enviar correo de mensaje directo
         if (notificarCiudadano && ticket.esPúblico && ticket.correoContacto) {
             sendMailToCitizen(ticket.correoContacto, 'mensaje', {
                 nombre: ticket.nombreContacto,
                 titulo: ticket.titulo,
                 codigoAcceso: ticket.codigoAcceso,
                 mensaje
-            }).catch(err => console.error('Error enviando mensaje directo al ciudadano:', err));
+            }).catch(err => console.error('Error enviando mensaje directo al solicitante:', err));
         }
 
         // Notificar a los correspondientes
         try {
-            // Si el ticket es interno y quien escribe NO es su creador, notificar al creador
+            // Si el ticket es de soporte y quien escribe NO es su creador, notificar al creador
             if (ticket.creadoPor && req.user._id.toString() !== ticket.creadoPor.toString()) {
                 await Notification.create({
                     usuarioId: ticket.creadoPor,
-                    mensaje: `Soporte ha respondido a tu ticket: ${ticket.titulo}`,
+                    mensaje: `Soporte ha respondido a su solicitud: ${ticket.titulo}`,
                     tipo: 'nuevo_mensaje',
                     link: `/app/tickets/${ticket._id}`
                 });
             } else {
-                // Si quien escribe es el creador del ticket o es un ticket público, notificar a los admins/asignado
+                // Si quien escribe es el creador del ticket o es un solicitante, notificar a soporte
                 const usersToNotify = ticket.asignadoA ? [ticket.asignadoA] : (await User.find({ rol: 'admin' })).map(u => u._id);
                 for (const userId of usersToNotify) {
                     await Notification.create({
@@ -328,7 +318,7 @@ const addMessage = async (req, res) => {
                 }
             }
         } catch (err) {
-            console.error('Error al notificar mensaje interno:', err);
+            console.error('Error al notificar mensaje de soporte:', err);
         }
     } else {
         res.status(404).json({ message: 'Ticket no encontrado' });
@@ -407,16 +397,14 @@ const addPublicMessage = async (req, res) => {
 
         res.status(201).json(newMessage);
 
-        // Notificar al administrador
+        // Notificar a soporte
         try {
             const usersToNotify = ticket.asignadoA ? [ticket.asignadoA] : (await User.find({ rol: 'admin' })).map(u => u._id);
-
-            // ... resto del bloque de notificaciones igual ...
 
             for (const userId of usersToNotify) {
                 await Notification.create({
                     usuarioId: userId,
-                    mensaje: `Nuevo mensaje en el ticket: ${ticket.titulo}`,
+                    mensaje: `Nuevo mensaje en la solicitud: ${ticket.titulo}`,
                     tipo: 'nuevo_mensaje',
                     link: `/app/tickets/${ticket._id}`
                 });
@@ -426,8 +414,8 @@ const addPublicMessage = async (req, res) => {
             const assignedUsers = await User.find({ _id: { $in: usersToNotify } });
             const userEmails = assignedUsers.map(u => u.email);
             if (userEmails.length > 0) {
-                const mailText = `Hola,\n\nEl ciudadano ha agregado un nuevo mensaje respondiendo al ticket Público.\n\nTicket: ${ticket.titulo}\nMensaje: "${mensaje}"\n\nIngresa al panel administrativo para responder.`;
-                await sendMailToInternalUsers(userEmails, `Nuevo mensaje en Ticket: ${ticket.titulo}`, mailText);
+                const mailText = `Hola,\n\nEl solicitante ha agregado un nuevo mensaje respondiendo a la solicitud.\n\nTicker: ${ticket.titulo}\nMensaje: "${mensaje}"\n\nIngresa al panel de soporte para responder.`;
+                await sendMailToInternalUsers(userEmails, `Nuevo mensaje en Solicitud: ${ticket.titulo}`, mailText);
             }
         } catch (err) {
             console.error('Error al notificar nuevo mensaje:', err);

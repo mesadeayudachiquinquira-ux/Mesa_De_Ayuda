@@ -125,7 +125,7 @@ const Login = () => {
                             to="/public-ticket"
                             className="w-full text-center py-2 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
                         >
-                            &iquest;Eres ciudadano? Crea un ticket aqu&iacute;
+                            ¿Eres funcionario solicitante? Crea una solicitud aquí
                         </Link>
                     </div>
                 </div>

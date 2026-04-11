@@ -61,14 +61,14 @@ const Home = () => {
                     </h1>
                     
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto font-medium leading-relaxed">
-                        Bienvenido al Centro de Gestión de Soporte. Seleccione una de las siguientes opciones para comenzar su trámite interno.
+                        Bienvenido al Centro de Gestión de Soporte. Seleccione una de las siguientes opciones para comenzar su trámite de soporte.
                     </p>
                 </div>
 
                 {/* Main Action Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <HubCard 
-                        title="Reportar Error"
+                        title="Nueva Solicitud"
                         description="Reporte incidentes de hardware, software o redes de forma rápida y sencilla."
                         icon={PlusCircle}
                         primary={true}
@@ -83,8 +83,8 @@ const Home = () => {
                     />
                     
                     <HubCard 
-                        title="Acceso Administración"
-                        description="Para técnicos y personal administrativo que gestiona las solicitudes diarias."
+                        title="Acceso Soporte"
+                        description="Para técnicos y personal de soporte que gestiona las solicitudes diarias."
                         icon={UserCircle}
                         onClick={() => navigate('/login')}
                     />

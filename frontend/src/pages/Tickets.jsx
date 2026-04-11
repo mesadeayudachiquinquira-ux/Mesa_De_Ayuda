@@ -267,7 +267,7 @@ const Tickets = () => {
                         <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-3">
                             {selectedTickets.length}
                         </span>
-                        <p className="font-medium text-sm">Tickets seleccionados para eliminar</p>
+                        <p className="font-medium text-sm">Tickets seleccionados para eliminar definitivamente</p>
                     </div>
                     <div className="flex gap-2">
                         <button
@@ -386,7 +386,7 @@ const Tickets = () => {
                                             />
                                         )}
                                     </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Asunto / Solicitante</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Asunto / Remitente</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Dependencia / Sección</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
@@ -429,11 +429,11 @@ const Tickets = () => {
                                                 <span className="text-xs text-gray-500 truncate max-w-[200px]">{ticket?.descripcion || 'Sin descripción'}</span>
                                                 <span className="text-xs font-bold text-gray-400">|</span>
                                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${ticket?.esPúblico ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                    {ticket?.esPúblico ? 'Externo' : 'Interno'}
+                                                    {ticket?.esPúblico ? 'Solicitante' : 'Soporte'}
                                                 </span>
                                             </div>
                                             <div className="text-[10px] text-gray-400 mt-1 italic">
-                                                De: {ticket?.esPúblico ? `${ticket?.nombreContacto || 'Anonimo'} (${ticket?.correoContacto || 'N/A'})` : (ticket?.creadoPor?.nombre || 'Usuario Desconocido')}
+                                                De: {ticket?.esPúblico ? `${ticket?.nombreContacto || 'Anónimo'} (${ticket?.correoContacto || 'N/A'})` : (ticket?.creadoPor?.nombre || 'Usuario Desconocido')}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

@@ -1,38 +1,37 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { useAuth } from '../context/AuthContext';
-import {
-    ArrowLeft,
-    Paperclip,
+import { 
+    Clock, 
+    User, 
+    Tag, 
+    AlertCircle, 
+    CheckCircle, 
+    MessageSquare, 
+    ArrowLeft, 
     Send,
-    User as UserIcon,
-    Clock,
-    AlertCircle,
-    CheckCircle,
-    Lock,
     Trash2,
-    AlertTriangle
+    Paperclip,
+    Building2,
+    Layout
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
 
 const TicketDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-
+    
     const [ticket, setTicket] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [loading, setLoading] = useState(true);
-
     const [newMessage, setNewMessage] = useState('');
+    const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
-    const [notificarCiudadano, setNotificarCiudadano] = useState(false);
-
-    // Recovery/Resolution states
-    const [showResolutionModal, setShowResolutionModal] = useState(false);
-    const [resolutionComment, setResolutionComment] = useState('');
-    const [atendidoPorNombre, setAtendidoPorNombre] = useState(user?.nombre || '');
+    const [status, setStatus] = useState('');
+    const [comentarioResolucion, setComentarioResolucion] = useState('');
+    const [atendidoPorNombre, setAtendidoPorNombre] = useState('');
+    const [notifyCitizen, setNotifyCitizen] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -43,31 +42,45 @@ const TicketDetail = () => {
     // Ref for auto-scrolling to newest message
     const messagesEndRef = useRef(null);
     const audioRef = useRef(new Audio('/sounds/notification.mp3'));
-    const prevMessagesLength = useRef(0);
 
-    // Ref to track ticket state for interval without causing re-renders
-    const ticketRef = useRef(null);
-    useEffect(() => {
-        ticketRef.current = ticket;
-    }, [ticket]);
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
-    // Initial fetch
     useEffect(() => {
-        fetchTicketInfo();
-    }, [id]);
+        scrollToBottom();
+    }, [messages, otherPersonTyping]);
 
-    // Polling interval — uses ref to avoid stale closures
     useEffect(() => {
-        if (!id) return;
-        
+        const fetchTicketData = async () => {
+            try {
+                const [ticketRes, messagesRes] = await Promise.all([
+                    api.get(`/tickets/${id}`),
+                    api.get(`/tickets/${id}/messages`)
+                ]);
+                setTicket(ticketRes.data);
+                setMessages(messagesRes.data);
+                setStatus(ticketRes.data.estado);
+                setComentarioResolucion(ticketRes.data.comentarioResolucion || '');
+                setAtendidoPorNombre(ticketRes.data.atendidoPorNombre || '');
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching ticket data:', error);
+                setLoading(false);
+            }
+        };
+
+        fetchTicketData();
+
+        // Join socket room for this ticket
         socket.connect();
         socket.emit('joinTicket', id);
 
-        const handleNewMessage = (mensaje) => {
-            setMessages((prev) => {
-                if (prev.some(m => m._id === mensaje._id)) return prev;
-                return [...prev, mensaje];
-            });
+        const handleNewMessage = (message) => {
+            setMessages(prev => [...prev, message]);
+            if (message.usuarioId !== user._id) {
+                audioRef.current.play().catch(e => console.log('Audio error:', e));
+            }
         };
 
         socket.on('newMessage', handleNewMessage);
@@ -80,36 +93,7 @@ const TicketDetail = () => {
             socket.off('userStopTyping');
             socket.disconnect();
         };
-    }, [id]);
-
-    useEffect(() => {
-        // Scroll to bottom whenever messages update
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-
-        // Play sound if new message is from someone else
-        if (messages.length > prevMessagesLength.current && prevMessagesLength.current > 0) {
-            const lastMsg = messages[messages.length - 1];
-            const isOwn = lastMsg.usuarioId && user && (lastMsg.usuarioId._id === user._id || lastMsg.usuarioId === user._id);
-            if (!isOwn) {
-                audioRef.current.play().catch(e => console.log('Audio blocked:', e));
-            }
-        }
-        prevMessagesLength.current = messages.length;
-    }, [messages, user?._id]);
-
-    const fetchTicketInfo = async () => {
-        try {
-            const { data } = await api.get(`/tickets/${id}`);
-            setTicket(data.ticket);
-            setMessages(data.messages || []);
-        } catch (error) {
-            console.error('Error fetching ticket details:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // fetchMessagesOnly removed since we use websockets
+    }, [id, user._id]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -117,116 +101,102 @@ const TicketDetail = () => {
 
         setSending(true);
         try {
-            await api.post(`/tickets/${id}/mensajes`, { mensaje: newMessage, notificarCiudadano });
+            const { data } = await api.post(`/tickets/${id}/messages`, { 
+                mensaje: newMessage,
+                notificarCiudadano: notifyCitizen 
+            });
+            // Socket handles UI update via broadcast, no need to manually append here if server emits
             setNewMessage('');
-            setNotificarCiudadano(false);
-            fetchTicketInfo(); // Refresh messages
+            setNotifyCitizen(false);
+            socket.emit('stopTyping', id);
         } catch (error) {
             console.error('Error sending message:', error);
-            alert('No se pudo enviar el mensaje.');
         } finally {
             setSending(false);
         }
     };
 
-    const handleChangeStatus = async (newStatus) => {
-        if (newStatus === 'cerrado') {
-            setShowResolutionModal(true);
-            return;
-        }
-
-        try {
-            await api.put(`/tickets/${id}`, { estado: newStatus });
-            fetchTicketInfo(); // Refresh ticket status
-        } catch (error) {
-            console.error('Error al cambiar el estado:', error);
-        }
-    };
-
-    const handleFinalClose = async () => {
-        if (!resolutionComment.trim() || !atendidoPorNombre.trim()) return;
+    const handleUpdateStatus = async () => {
         setUpdatingStatus(true);
         try {
-            await api.put(`/tickets/${id}`, {
-                estado: 'cerrado',
-                comentarioResolucion: resolutionComment,
-                atendidoPorNombre: atendidoPorNombre
+            const { data } = await api.put(`/tickets/${id}`, { 
+                estado: status,
+                comentarioResolucion,
+                atendidoPorNombre
             });
-            setShowResolutionModal(false);
-            fetchTicketInfo();
+            setTicket(data);
+            alert('Estado actualizado correctamente');
         } catch (error) {
-            console.error('Error al cerrar ticket:', error);
-            alert('No se pudo cerrar el ticket adecuadamente.');
+            console.error('Error updating status:', error);
+            alert('Error al actualizar el estado');
         } finally {
             setUpdatingStatus(false);
         }
     };
 
-    const handleDelete = async () => {
-        setUpdatingStatus(true);
+    const handleDeleteTicket = async () => {
         try {
             await api.delete(`/tickets/${id}`);
             navigate('/app/tickets');
         } catch (error) {
-            console.error('Error al borrar ticket:', error);
-            alert(error.response?.data?.message || 'No se pudo eliminar el ticket.');
-        } finally {
-            setUpdatingStatus(false);
-            setShowDeleteModal(false);
+            console.error('Error deleting ticket:', error);
+            alert('Error al eliminar el ticket');
         }
     };
 
-    if (loading) return <div className="flex justify-center p-12"><span className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></span></div>;
-    if (!ticket) return <div className="text-center p-12 text-gray-500">Ticket no encontrado o sin acceso.</div>;
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+            </div>
+        );
+    }
+
+    if (!ticket) {
+        return (
+            <div className="p-8 text-center">
+                <h2 className="text-2xl font-bold text-gray-800">Solicitud no encontrada</h2>
+                <button onClick={() => navigate('/app/tickets')} className="mt-4 btn-primary">Volver a la lista</button>
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
-
-            {/* Header Area */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center">
-                    <Link to="/app/tickets" className="mr-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
+        <div className="max-w-7xl mx-auto px-4 py-8 pb-20">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => navigate('/app/tickets')}
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors order-first"
+                    >
+                        <ArrowLeft className="h-6 w-6 text-gray-600" />
+                    </button>
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{ticket.titulo}</h1>
-                        <p className="text-sm text-gray-500 mt-1 flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            Creado el {new Date(ticket.fechaCreación).toLocaleString()} por
-                            <span className="font-semibold text-gray-700 ml-1">
-                                {ticket.esPúblico ? `${ticket.nombreContacto} (Externo)` : ticket.creadoPor?.nombre}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <h1 className="text-3xl font-extrabold text-gray-900">{ticket.titulo}</h1>
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase ${ticket.esPúblico ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-blue-100 text-blue-600 border border-blue-200'}`}>
+                                {ticket.esPúblico ? 'Solicitante' : 'Soporte'}
                             </span>
-                        </p>
+                        </div>
+                        <p className="text-gray-500 mt-1">Gestión completa y comunicación con el solicitante.</p>
                     </div>
                 </div>
 
-                {/* Agentes y Admin Controls */}
-                <div className="flex items-center gap-2">
-                    <select
-                        className="input-field text-sm font-semibold !py-1.5"
-                        value={ticket.estado}
-                        onChange={(e) => handleChangeStatus(e.target.value)}
+                {user.rol === 'admin' && (
+                    <button 
+                        onClick={() => setShowDeleteModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-semibold transition-colors border border-red-200"
                     >
-                        <option value="abierto">Abierto</option>
-                        <option value="en_progreso">En Progreso</option>
-                        <option value="cerrado">Cerrado</option>
-                    </select>
-                    {user?.rol === 'admin' && (
-                        <button
-                            onClick={() => setShowDeleteModal(true)}
-                            className="p-2 text-gray-400 hover:text-red-600 bg-white hover:bg-red-50 border border-gray-200 rounded-lg transition-all shadow-sm"
-                            title="Eliminar Ticket"
-                        >
-                            <Trash2 className="h-5 w-5" />
-                        </button>
-                     )}
-                </div>
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar Solicitud
+                    </button>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Chat/Info Area */}
-                <div className="lg:col-span-2 space-y-6">
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Details & Chat */}
+                <div className="lg:col-span-2 space-y-8">
                     {/* Ticket Description Card */}
                     <div className="card">
                         <div className="border-b border-gray-100 pb-4 mb-4">
@@ -270,7 +240,7 @@ const TicketDetail = () => {
                                         
                                         return (
                                         <a
-                                            key={fileUrl}
+                                            key={index}
                                             href={finalUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
@@ -286,271 +256,251 @@ const TicketDetail = () => {
                         )}
                     </div>
 
-                    {/* Chat Messages - Solo para tickets externos */}
-                    {ticket.esPúblico && (
-                        <div className="card flex flex-col h-[500px]">
-                            <div className="border-b border-gray-100 pb-4 mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Conversación con el Usuario</h3>
-                            </div>
+                    {/* Chat Messages */}
+                    <div className="card flex flex-col h-[500px]">
+                        <div className="border-b border-gray-100 pb-4 mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Conversación</h3>
+                        </div>
 
-                            <div className="flex-1 overflow-y-auto pr-4 space-y-6">
-                                {/* Indicador de "está escribiendo" */}
-                                {otherPersonTyping && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-gray-100 rounded-2xl rounded-tl-none px-5 py-3 flex items-center gap-2 shadow-sm">
-                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
-                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
-                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
-                                            <span className="text-xs text-gray-400 ml-1">
-                                                <span className="font-semibold text-gray-600">
-                                                    {ticket?.nombreContacto || ticket?.creadoPor?.nombre || 'El solicitante'}
-                                                </span> está escribiendo...
-                                            </span>
-                                        </div>
+                        <div className="flex-1 overflow-y-auto pr-4 space-y-6">
+                            {/* Typing indicator */}
+                            {otherPersonTyping && (
+                                <div className="flex justify-start">
+                                    <div className="bg-gray-100 rounded-2xl rounded-tl-none px-5 py-3 flex items-center gap-2 shadow-sm">
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
+                                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
+                                        <span className="text-xs text-gray-400 ml-1">
+                                            <span className="font-semibold text-gray-600">
+                                                {ticket?.nombreContacto || ticket?.creadoPor?.nombre || 'El solicitante'}
+                                            </span> está escribiendo...
+                                        </span>
                                     </div>
-                                )}
-                                {messages.length === 0 ? (
-                                    <div className="h-full flex items-center justify-center text-gray-400 italic">
-                                        No hay mensajes aún. Comienza la conversación abajo.
-                                    </div>
-                                ) : (
-                                    messages.map((msg) => {
-                                        const isOwn = msg.usuarioId && (msg.usuarioId._id === user._id || msg.usuarioId === user._id);
-                                        const isAdmin = msg.usuarioId?.rol === 'admin';
-                                        const nombreUsuario = msg.usuarioId?.nombre || 'Portal Público';
+                                </div>
+                            )}
+                            
+                            {messages.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-gray-400 italic">
+                                    No hay mensajes aún. Comienza la conversación abajo.
+                                </div>
+                            ) : (
+                                messages.map((msg) => {
+                                    const isOwn = msg.usuarioId && (msg.usuarioId._id === user._id || msg.usuarioId === user._id);
+                                    const isAdmin = msg.usuarioId?.rol === 'admin';
+                                    const nombreUsuario = msg.usuarioId?.nombre || ticket.nombreContacto || 'Solicitante';
 
-                                        return (
-                                            <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`flex max-w-[80%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                                    return (
+                                        <div key={msg._id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`flex max-w-[80%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                                                {/* Avatar */}
+                                                {!isOwn && (
+                                                    <div className={`flex-shrink-0 ${isOwn ? 'ml-3' : 'mr-3'} h-8 w-8 rounded-full flex items-center justify-center text-white ${isAdmin ? 'bg-purple-500' : 'bg-blue-500'}`}>
+                                                        {nombreUsuario.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
 
-                                                    {/* Avatar */}
+                                                {/* Bubble */}
+                                                <div className={`rounded-2xl px-5 py-3 shadow-sm ${isOwn 
+                                                    ? 'bg-blue-600 text-white rounded-tr-none' 
+                                                    : 'bg-gray-100 text-gray-800 rounded-tl-none'
+                                                    }`}>
                                                     {!isOwn && (
-                                                        <div className={`flex-shrink-0 mr-3 h-8 w-8 rounded-full flex items-center justify-center text-white ${isAdmin ? 'bg-purple-500' : 'bg-blue-500'}`}>
-                                                            {nombreUsuario.charAt(0).toUpperCase()}
+                                                        <div className={`text-[10px] font-black uppercase tracking-wider mb-1 ${isAdmin ? 'text-purple-600' : 'text-blue-600'}`}>
+                                                            {isAdmin ? 'Soporte ✓' : 'Solicitante'}
                                                         </div>
                                                     )}
-
-                                                    {/* Bubble */}
-                                                    <div className={`rounded-2xl px-5 py-3 shadow-sm ${isOwn
-                                                        ? 'bg-blue-600 text-white rounded-tr-none'
-                                                        : 'bg-gray-100 text-gray-800 rounded-tl-none'
-                                                        }`}>
-                                                        {!isOwn && (
-                                                            <div className={`text-xs font-bold mb-1 ${isAdmin ? 'text-purple-600' : 'text-blue-600'}`}>
-                                                                {msg.usuarioId?.nombre || 'Usuario'} {isAdmin && '(Admin)'}
-                                                            </div>
-                                                        )}
-                                                        <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.mensaje}</p>
-                                                        <div className={`text-[10px] mt-2 text-right ${isOwn ? 'text-blue-200' : 'text-gray-400'}`}>
-                                                            {new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
+                                                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.mensaje}</p>
+                                                    <div className={`text-[10px] mt-2 text-right ${isOwn ? 'text-blue-200' : 'text-gray-400'}`}>
+                                                        {new Date(msg.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 </div>
                                             </div>
-                                        );
-                                    })
-                                )}
-                                <div ref={messagesEndRef} />
-                            </div>
-
-                            {/* Chat Input */}
-                            {ticket.estado !== 'cerrado' ? (
-                                <form onSubmit={handleSendMessage} className="mt-4 pt-4 border-t border-gray-100">
-                                    <div className="flex space-x-3">
-                                        <input
-                                            type="text"
-                                            value={newMessage}
-                                            onChange={(e) => {
-                                                setNewMessage(e.target.value);
-                                                // Emitir typing
-                                                socket.emit('typing', { ticketId: id, role: 'admin' });
-                                                clearTimeout(typingTimeoutRef.current);
-                                                typingTimeoutRef.current = setTimeout(() => {
-                                                    socket.emit('stopTyping', id);
-                                                }, 2000);
-                                            }}
-                                            placeholder="Escribe un mensaje al usuario externo..."
-                                            className="input-field flex-1"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={sending || !newMessage.trim()}
-                                            className="btn-primary flex items-center px-5"
-                                        >
-                                            {sending ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : <Send className="h-5 w-5" />}
-                                        </button>
-                                    </div>
-                                    {/* Checkbox para notificar al ciudadano por correo */}
-                                    {ticket.correoContacto && (
-                                        <label className="flex items-center gap-2 mt-3 cursor-pointer select-none w-fit">
-                                            <input
-                                                type="checkbox"
-                                                checked={notificarCiudadano}
-                                                onChange={(e) => setNotificarCiudadano(e.target.checked)}
-                                                className="w-4 h-4 accent-blue-600 rounded"
-                                            />
-                                            <span className="text-xs text-gray-500">
-                                                📧 Notificar este mensaje al ciudadano por correo
-                                                <span className="text-blue-500 ml-1">({ticket.correoContacto})</span>
-                                            </span>
-                                        </label>
-                                    )}
-                                </form>
-                            ) : (
-                                <div className="mt-4 pt-4 border-t border-gray-100 text-center text-gray-500 font-medium bg-gray-50 p-3 rounded-lg flex items-center justify-center">
-                                    <Lock className="h-4 w-4 mr-2" />
-                                    Este ticket está cerrado y no admite más mensajes.
-                                </div>
+                                        </div>
+                                    );
+                                })
                             )}
+                            <div ref={messagesEndRef} />
                         </div>
-                    )}
+
+                        {/* Chat Input */}
+                        {ticket.estado !== 'cerrado' ? (
+                            <form onSubmit={handleSendMessage} className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="flex space-x-3">
+                                    <input
+                                        type="text"
+                                        value={newMessage}
+                                        onChange={(e) => {
+                                            setNewMessage(e.target.value);
+                                            socket.emit('typing', { ticketId: id, role: 'soporte' });
+                                            clearTimeout(typingTimeoutRef.current);
+                                            typingTimeoutRef.current = setTimeout(() => {
+                                                socket.emit('stopTyping', id);
+                                            }, 2000);
+                                        }}
+                                        placeholder="Escribe un mensaje al solicitante..."
+                                        className="input-field flex-1"
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        disabled={sending || !newMessage.trim()}
+                                        className="btn-primary flex items-center px-5"
+                                    >
+                                        {sending ? <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" /> : <Send className="h-5 w-5" />}
+                                    </button>
+                                </div>
+                                {ticket.esPúblico && (
+                                    <label className="flex items-center gap-2 mt-2 text-xs text-gray-500 cursor-pointer hover:text-blue-600 transition-colors">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={notifyCitizen}
+                                            onChange={(e) => setNotifyCitizen(e.target.checked)}
+                                            className="rounded text-blue-600"
+                                        />
+                                        <span>Notificar al solicitante por correo</span>
+                                    </label>
+                                )}
+                            </form>
+                        ) : (
+                            <div className="mt-4 pt-4 border-t border-gray-100 text-center text-gray-500 text-sm py-4 italic bg-gray-50 rounded-lg">
+                                La conversación está cerrada porque la solicitud ya fue resuelta.
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Sidebar Status/Info Panel */}
-                <div className="space-y-6">
+                {/* Right Column: Status & Metadata */}
+                <div className="space-y-8">
+                    {/* Status Update Card */}
                     <div className="card">
-                        <h3 className="text-sm font-bold tracking-wider text-gray-500 uppercase mb-4">Información del Ticket</h3>
+                        <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider flex items-center gap-2">
+                             Estado de la Solicitud
+                        </h3>
                         <div className="space-y-4">
                             <div>
-                                <p className="text-xs text-gray-500 mb-1">Estado</p>
-                                <div className="flex items-center">
-                                    <span className={`w-3 h-3 rounded-full mr-2 
-                    ${ticket.estado === 'abierto' ? 'bg-red-500' :
-                                            ticket.estado === 'en_progreso' ? 'bg-yellow-500' :
-                                                'bg-green-500'}`}></span>
-                                    <span className="font-semibold text-gray-900 capitalize">{(ticket.estado || '').replace('_', ' ')}</span>
-                                </div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-2">Estado Actual</label>
+                                <select 
+                                    value={status} 
+                                    onChange={(e) => setStatus(e.target.value)}
+                                    className="input-field"
+                                >
+                                    <option value="abierto">Abierto</option>
+                                    <option value="en_progreso">En Progreso</option>
+                                    <option value="cerrado">Resuelto / Cerrado</option>
+                                </select>
                             </div>
-                            <div className="border-t border-gray-100 pt-4">
-                                <p className="text-xs text-gray-500 mb-1">Dependencia / Secretaría</p>
-                                <span className="font-semibold text-gray-900">{ticket.dependencia}</span>
-                            </div>
-                            {ticket.seccion && (
-                                <div className="border-t border-gray-100 pt-4">
-                                    <p className="text-xs text-gray-500 mb-1">Sección / Oficina</p>
-                                    <span className="font-semibold text-gray-900">{ticket.seccion}</span>
-                                </div>
+
+                            {status === 'cerrado' && (
+                                <>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-2">Resuelto por</label>
+                                        <input 
+                                            type="text" 
+                                            value={atendidoPorNombre}
+                                            onChange={(e) => setAtendidoPorNombre(e.target.value)}
+                                            placeholder="Nombre del técnico..."
+                                            className="input-field"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-2">Detalle de la solución (público)</label>
+                                        <textarea 
+                                            value={comentarioResolucion}
+                                            onChange={(e) => setComentarioResolucion(e.target.value)}
+                                            placeholder="Explique cómo se resolvió..."
+                                            className="input-field h-24 resize-none"
+                                        />
+                                    </div>
+                                </>
                             )}
-                            <div className="border-t border-gray-100 pt-4">
-                                <p className="text-xs text-gray-500 mb-1">ID del Ticket</p>
-                                <span className="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">{ticket._id}</span>
-                            </div>
-                            {ticket.esPúblico && (
-                                <div className="border-t border-gray-100 pt-4 bg-orange-50 -mx-4 px-4 pb-4">
-                                    <p className="text-xs font-bold text-orange-700 mb-2 uppercase tracking-widest mt-2">Contacto Externo</p>
-                                    <div className="space-y-2">
-                                        <p className="text-sm text-gray-700"><strong>Nombre:</strong> {ticket.nombreContacto}</p>
-                                        <p className="text-sm text-gray-700"><strong>Email:</strong> {ticket.correoContacto}</p>
-                                        {ticket.telefonoContacto && <p className="text-sm text-gray-700"><strong>Tel:</strong> {ticket.telefonoContacto}</p>}
+
+                            <button
+                                onClick={handleUpdateStatus}
+                                disabled={updatingStatus}
+                                className="w-full btn-primary"
+                            >
+                                {updatingStatus ? 'Actualizando...' : 'Guardar Cambios'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Metadata Card */}
+                    <div className="card space-y-6">
+                        <section>
+                            <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-widest">Información del Solicitante</p>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-gray-100 p-2 rounded-lg">
+                                        <User className="h-4 w-4 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900">{ticket.esPúblico ? (ticket.nombreContacto || 'Anónimo') : (ticket.creadoPor?.nombre || 'Usuario')}</p>
+                                        <p className="text-[10px] text-gray-500">{ticket.esPúblico ? (ticket.correoContacto || 'Sin correo') : (ticket.creadoPor?.email || 'Interno')}</p>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-gray-100 p-2 rounded-lg">
+                                        <Building2 className="h-4 w-4 text-gray-600" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900">{ticket.dependencia || 'N/A'}</p>
+                                        <p className="text-[10px] text-gray-500">{ticket.seccion || 'Área General'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="pt-4 border-t border-gray-100">
+                            <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-widest">Detalles del Sistema</p>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">ID:</span>
+                                    <span className="font-mono text-gray-900">{ticket._id}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Código Seguimiento:</span>
+                                    <span className="font-bold text-blue-600">{ticket.codigoAcceso || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-gray-500">Fecha:</span>
+                                    <span className="text-gray-900">{new Date(ticket.fechaCreación).toLocaleDateString()} {new Date(ticket.fechaCreación).toLocaleTimeString()}</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        {ticket.esPúblico && (
+                            <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                                <p className="text-[10px] font-black uppercase text-orange-700 mb-1">Nota de Seguridad</p>
+                                <p className="text-[10px] text-orange-600 leading-tight">Esta solicitud fue registrada mediante código de acceso de oficina (sin cuenta).</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Modal de Resolución */}
-            {showResolutionModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-
-                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-                        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                            <div className="bg-white px-6 pt-6 pb-4">
-                                <div className="flex items-center mb-4">
-                                    <div className="bg-green-100 p-2 rounded-full mr-3 text-green-600">
-                                        <CheckCircle className="h-6 w-6" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900">Finalizar Ticket</h3>
-                                </div>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Por favor describe qué se hizo para solucionar el problema y tu nombre. Esto será visible para el equipo (y para el usuario externo).
-                                </p>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tu nombre (Funcionario que atiende)</label>
-                                        <input
-                                            type="text"
-                                            className="input-field"
-                                            placeholder="Ej. Juan Pérez"
-                                            value={atendidoPorNombre}
-                                            onChange={(e) => setAtendidoPorNombre(e.target.value)}
-                                            required
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Detalle de la solución</label>
-                                        <textarea
-                                            className="input-field min-h-[100px] resize-none"
-                                            placeholder="Ej. Se reemplazó el cable de red dañado y se configuró la IP estática..."
-                                            value={resolutionComment}
-                                            onChange={(e) => setResolutionComment(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3">
-                                <button
-                                    type="button"
-                                    disabled={updatingStatus || !resolutionComment.trim() || !atendidoPorNombre.trim()}
-                                    onClick={handleFinalClose}
-                                    className="btn-primary px-6"
-                                >
-                                    {updatingStatus ? 'Cerrando...' : 'Cerrar Ticket'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowResolutionModal(false)}
-                                    className="btn-secondary px-6"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de Borrado */}
+            {/* Modal de confirmación de eliminación */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-                            <div className="bg-white px-6 pt-6 pb-4">
-                                <div className="flex items-center mb-4">
-                                    <div className="bg-red-100 p-2 rounded-full mr-3 text-red-600">
-                                        <AlertTriangle className="h-6 w-6" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900">¿Eliminar Ticket?</h3>
-                                </div>
-                                <p className="text-sm text-gray-500">
-                                    Esta acción es permanente y eliminará tanto el ticket como todos sus mensajes. No se puede deshacer.
-                                </p>
-                            </div>
-                            <div className="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3">
-                                <button
-                                    type="button"
-                                    disabled={updatingStatus}
-                                    onClick={handleDelete}
-                                    className="btn-primary bg-red-600 hover:bg-red-700 focus:ring-red-500 px-6"
-                                >
-                                    {updatingStatus ? 'Eliminando...' : 'Eliminar Permanentemente'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDeleteModal(false)}
-                                    className="btn-secondary px-6"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in fade-in zoom-in duration-200">
+                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                            <Trash2 className="h-8 w-8 text-red-600" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">¿Eliminar Solicitud?</h2>
+                        <p className="text-gray-500 mb-8 leading-relaxed">
+                            Esta acción es irreversible. Se eliminarán permanentemente el ticket, todos los mensajes del chat y archivos adjuntos.
+                        </p>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => setShowDeleteModal(false)}
+                                className="flex-1 py-3 px-4 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleDeleteTicket}
+                                className="flex-1 py-3 px-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all"
+                            >
+                                Sí, Eliminar
+                            </button>
                         </div>
                     </div>
                 </div>

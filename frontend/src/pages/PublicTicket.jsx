@@ -115,7 +115,7 @@ const PublicTicket = () => {
                             <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle className="text-green-600 w-12 h-12" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2"><span>¡Ticket Enviado!</span></h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2"><span>¡Nueva Solicitud Enviada!</span></h2>
                             <p className="text-gray-600 mb-6 font-medium">
                                 <span>Hemos recibido tu solicitud. Guarda los siguientes datos para seguir el estado de tu ticket y chatear con soporte:</span>
                             </p>

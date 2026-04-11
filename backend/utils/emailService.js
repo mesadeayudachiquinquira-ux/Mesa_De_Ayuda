@@ -7,7 +7,7 @@ const FROM_EMAIL = process.env.SMTP_FROM || 'mesadeayudachiquinquira@gmail.com';
  * Función auxiliar para capitalizar nombres
  */
 const capitalize = (str) => {
-    if (!str || typeof str !== 'string') return 'Ciudadano';
+    if (!str || typeof str !== 'string') return 'Solicitante';
     return str.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
@@ -124,9 +124,6 @@ const templateMensajeDirecto = ({ nombre, titulo, codigoAcceso, mensaje }) => `
     <div class="footer"><p>MuniSupport Chiquinquira</p></div>
 </div></body></html>`;
 
-/**
- * Envío de correos ciudadano vía Bridge
- */
 const sendMailToCitizen = async (to, tipo, data) => {
     let subject, html;
     if (tipo === 'bienvenida') {
