@@ -32,6 +32,7 @@ const TicketDetail = () => {
     const [comentarioResolucion, setComentarioResolucion] = useState('');
     const [atendidoPorNombre, setAtendidoPorNombre] = useState('');
     const [notifyCitizen, setNotifyCitizen] = useState(false);
+    const [categoria, setCategoria] = useState('');
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [error, setError] = useState('');
@@ -62,6 +63,7 @@ const TicketDetail = () => {
                     setTicket(data.ticket);
                     setMessages(data.messages || []);
                     setStatus(data.ticket.estado);
+                    setCategoria(data.ticket.categoria || '');
                     setComentarioResolucion(data.ticket.comentarioResolucion || '');
                     setAtendidoPorNombre(data.ticket.atendidoPorNombre || '');
                 } else {
@@ -129,6 +131,7 @@ const TicketDetail = () => {
         try {
             const { data } = await api.put(`/tickets/${id}`, { 
                 estado: status,
+                categoria,
                 comentarioResolucion,
                 atendidoPorNombre
             });
@@ -409,6 +412,24 @@ const TicketDetail = () => {
                             {status === 'cerrado' && (
                                 <>
                                     <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-2">Categoría Técnica *</label>
+                                        <select 
+                                            value={categoria}
+                                            onChange={(e) => setCategoria(e.target.value)}
+                                            className={`input-field ${!categoria && status === 'cerrado' ? 'border-red-500 bg-red-50' : ''}`}
+                                        >
+                                            <option value="">Seleccione Categoría...</option>
+                                            <option value="Falla de Hardware">Falla de Hardware</option>
+                                            <option value="Red / Internet">Red / Internet</option>
+                                            <option value="Soporte de Software">Soporte de Software</option>
+                                            <option value="Cuentas y Accesos">Cuentas y Accesos</option>
+                                            <option value="Correo Electrónico">Correo Electrónico</option>
+                                            <option value="Capacitación / Consulta">Capacitación / Consulta</option>
+                                            <option value="Mantenimiento Preventivo">Mantenimiento Preventivo</option>
+                                            <option value="Otro">Otro</option>
+                                        </select>
+                                    </div>
+                                    <div>
                                         <label className="block text-xs font-semibold text-gray-500 mb-2">Resuelto por</label>
                                         <input 
                                             type="text" 
@@ -432,11 +453,16 @@ const TicketDetail = () => {
 
                             <button
                                 onClick={handleUpdateStatus}
-                                disabled={updatingStatus}
-                                className="w-full btn-primary"
+                                disabled={updatingStatus || (status === 'cerrado' && !categoria)}
+                                className={`w-full btn-primary ${status === 'cerrado' && !categoria ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 {updatingStatus ? 'Actualizando...' : 'Guardar Cambios'}
                             </button>
+                            {status === 'cerrado' && !categoria && (
+                                <p className="text-[10px] text-red-500 font-bold text-center mt-1">
+                                    (!) Selección de categoría obligatoria
+                                </p>
+                            )}
                         </div>
                     </div>
 

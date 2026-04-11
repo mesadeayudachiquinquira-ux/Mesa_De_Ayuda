@@ -6,6 +6,7 @@ const AccessCode = require('../models/AccessCode');
 const crypto = require('crypto');
 const { sendMailToInternalUsers, sendMailToCitizen } = require('../utils/emailService');
 const { uploadToCloudinary } = require('../middleware/uploadMiddleware');
+const ExcelJS = require('exceljs');
 
 
 // Helper para generar código de seguimiento único (6 caracteres)
@@ -231,6 +232,14 @@ const updateTicket = async (req, res, next) => {
             }
             if (atendidoPorNombre) {
                 ticket.atendidoPorNombre = atendidoPorNombre;
+            }
+            if (req.body.categoria) {
+                ticket.categoria = req.body.categoria;
+            }
+
+            // Validación: Obligatorio elegir categoría al cerrar
+            if (estado === 'cerrado' && !ticket.categoria && !req.body.categoria) {
+                return res.status(400).json({ message: 'Debe seleccionar una categoría técnica antes de cerrar el ticket' });
             }
 
             const updatedTicket = await ticket.save();
@@ -493,6 +502,197 @@ const deleteMultipleTickets = async (req, res, next) => {
     }
 };
 
+// @desc    Exportar tickets a Excel con analíticas para el jefe
+// @route   GET /api/tickets/export/excel
+// @access  Private/Admin
+const exportTicketsExcel = async (req, res, next) => {
+    try {
+        // Filtrar solo tickets cerrados por solicitud del usuario para sus reportes mensuales
+        const tickets = await Ticket.find({ estado: 'cerrado' }).populate('creadoPor', 'nombre email');
+        
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'MuniSupport System';
+        workbook.lastModifiedBy = 'Admin';
+        workbook.created = new Date();
+
+        // --- HOJA 1: LISTADO COMPLETO ---
+        const sheet = workbook.addWorksheet('Reporte de Tickets');
+
+        sheet.columns = [
+            { header: 'ID', key: '_id', width: 25 },
+            { header: 'Título', key: 'titulo', width: 30 },
+            { header: 'Estado', key: 'estado', width: 15 },
+            { header: 'Categoría', key: 'categoria', width: 25 },
+            { header: 'Solicitante', key: 'solicitante', width: 25 },
+            { header: 'Dependencia', key: 'dependencia', width: 25 },
+            { header: 'Sección', key: 'seccion', width: 20 },
+            { header: 'Fecha Creación', key: 'fecha', width: 20 },
+            { header: 'Atendido Por', key: 'atendidoPor', width: 25 },
+        ];
+
+        // Formato de cabecera
+        sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        sheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF2563EB' } // Azul primario
+        };
+
+        tickets.forEach(t => {
+            sheet.addRow({
+                _id: t._id.toString(),
+                titulo: t.titulo,
+                estado: (t.estado || '').replace('_', ' ').toUpperCase(),
+                categoria: t.categoria || 'Sin Clasificar',
+                solicitante: t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Interno'),
+                dependencia: t.dependencia,
+                seccion: t.seccion || 'N/A',
+                fecha: new Date(t.fechaCreación).toLocaleString(),
+                atendidoPor: t.atendidoPorNombre || 'No Registrado'
+            });
+        });
+
+        const statsSheet = workbook.addWorksheet('Resumen de Gestión');
+        
+        // Estilo General para analíticas
+        statsSheet.getRow(1).height = 30;
+        statsSheet.getCell('A1').value = 'RESUMEN EJECUTIVO DE GESTIÓN MUNICIPAL';
+        statsSheet.getCell('A1').font = { size: 18, bold: true, color: { argb: 'FF1E3A8A' } }; // Azul oscuro profundo
+        statsSheet.mergeCells('A1:B1');
+
+        statsSheet.addRow(['Generado el: ' + new Date().toLocaleString()]);
+        statsSheet.addRow([]);
+
+        // --- SECCIÓN 1: DESEMPEÑO ---
+        const rowEmp = statsSheet.addRow(['🏆 RANKING DE DESEMPEÑO (TICKETS RESUELTOS)']);
+        rowEmp.font = { bold: true, size: 12 };
+        rowEmp.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+        
+        const headerEmp = statsSheet.addRow(['Nombre del Funcionario', 'Casos Cerrados']);
+        headerEmp.font = { bold: true };
+        headerEmp.eachCell(c => c.border = { bottom: { style: 'thin' } });
+
+        const empStats = {};
+        tickets.forEach(t => {
+            const name = t.atendidoPorNombre || 'No Registrado';
+            empStats[name] = (empStats[name] || 0) + 1;
+        });
+        
+        Object.entries(empStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([name, count], idx) => {
+                const r = statsSheet.addRow([name, count]);
+                if (idx === 0) r.getCell(1).font = { bold: true, color: { argb: 'FFB45309' } }; // Oro/Ámbar para el #1
+            });
+
+        statsSheet.addRow([]);
+
+        // --- SECCIÓN 2: CARGA POR OFICINA ---
+        const rowDep = statsSheet.addRow(['🏢 CARGA DE TRABAJO POR DEPENDENCIA']);
+        rowDep.font = { bold: true, size: 12 };
+        rowDep.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+
+        const headerDep = statsSheet.addRow(['Oficina / Área', 'Total Solicitudes']);
+        headerDep.font = { bold: true };
+        headerDep.eachCell(c => c.border = { bottom: { style: 'thin' } });
+        
+        const depStats = {};
+        tickets.forEach(t => {
+            const dep = t.dependencia || 'Otras';
+            depStats[dep] = (depStats[dep] || 0) + 1;
+        });
+        
+        Object.entries(depStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([dep, count]) => statsSheet.addRow([dep, count]));
+
+        statsSheet.addRow([]);
+
+        // --- SECCIÓN 3: INCIDENCIAS ---
+        const rowInc = statsSheet.addRow(['📉 ANÁLISIS DE INCIDENCIAS MÁS FRECUENTES']);
+        rowInc.font = { bold: true, size: 12 };
+        rowInc.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
+
+        const headerInc = statsSheet.addRow(['Categoría Técnica', 'Frecuencia de Reporte']);
+        headerInc.font = { bold: true };
+        headerInc.eachCell(c => c.border = { bottom: { style: 'thin' } });
+        
+        const catStats = {};
+        tickets.forEach(t => {
+            const cat = t.categoria || 'Sin Clasificar';
+            catStats[cat] = (catStats[cat] || 0) + 1;
+        });
+        
+        Object.entries(catStats)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([cat, count]) => statsSheet.addRow([cat, count]));
+
+        // Diseño Final de la Hoja de Analíticas
+        statsSheet.getColumn(1).width = 50;
+        statsSheet.getColumn(2).width = 25;
+        statsSheet.getColumn(2).alignment = { horizontal: 'center' };
+
+        // --- HOJA 2: LISTADO DETALLADO ---
+        const sheet = workbook.addWorksheet('Bitácora Detallada');
+        sheet.views = [{ state: 'frozen', ySplit: 1 }]; // Congelar encabezado
+
+        sheet.columns = [
+            { header: 'CÓDIGO ID', key: '_id', width: 25 },
+            { header: 'ASUNTO / TÍTULO', key: 'titulo', width: 35 },
+            { header: 'CATEGORÍA TÉCNICA', key: 'categoria', width: 25 },
+            { header: 'SOLICITANTE', key: 'solicitante', width: 30 },
+            { header: 'DEPENDENCIA', key: 'dependencia', width: 30 },
+            { header: 'ÁREA / SECCIÓN', key: 'seccion', width: 25 },
+            { header: 'FECHA REGISTRO', key: 'fecha', width: 22 },
+            { header: 'TÉCNICO ASIGNADO', key: 'atendidoPor', width: 25 },
+        ];
+
+        // Estilo de Cabecera Listado
+        const headerRow = sheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+
+        // Agregar filas con estilo cebra
+        tickets.forEach((t, index) => {
+            const row = sheet.addRow({
+                _id: t._id.toString(),
+                titulo: t.titulo,
+                categoria: t.categoria || 'POR CLASIFICAR',
+                solicitante: t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Funcionario Interno'),
+                dependencia: t.dependencia,
+                seccion: t.seccion || 'N/A',
+                fecha: new Date(t.fechaCreación).toLocaleString(),
+                atendidoPor: t.atendidoPorNombre || 'Pendiente / No asig.'
+            });
+
+            // Zebra styling
+            if (index % 2 !== 0) {
+                row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+            }
+            row.eachCell(c => {
+                c.border = { 
+                    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'FFF3F4F6' } }
+                };
+            });
+        });
+
+        // Auto-filtro para el listado
+        sheet.autoFilter = { from: 'A1', to: 'H1' };
+
+        // Configurar respuesta del archivo
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=Reporte_MuniSupport_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     getTickets,
     getTicketById,
@@ -504,5 +704,6 @@ module.exports = {
     addPublicMessage,
     deleteTicket,
     deleteMultipleTickets,
-    verifyPin
+    verifyPin,
+    exportTicketsExcel
 };

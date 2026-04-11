@@ -161,36 +161,31 @@ const Tickets = () => {
         .map(([nombre, count]) => ({ nombre, count }))
         .sort((a, b) => b.count - a.count);
 
-    // ─── Exportar a Excel (CSV) ────────────────────────────────────────
-    const handleExportCSV = () => {
-        const headers = ['ID', 'Título', 'Estado', 'Tipo', 'Solicitante', 'Correo', 'Dependencia', 'Sección', 'Fecha Creación', 'Resuelto por'];
-        const rows = filteredTickets.map(t => [
-            t._id,
-            t.titulo || '',
-            (t.estado || '').replace('_', ' ').toUpperCase(),
-            t.esPúblico ? 'Solicitante' : 'Soporte',
-            t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Interno'),
-            t.correoContacto || t.creadoPor?.email || '',
-            t.dependencia || '',
-            t.seccion || '',
-            t.fechaCreación ? new Date(t.fechaCreación).toLocaleString() : '',
-            t.atendidoPorNombre || ''
-        ]);
+    // ─── Exportar a Excel Profesional (.xlsx) ─────────────────────────
+    const handleExportExcel = async () => {
+        try {
+            setRefreshing(true);
+            const response = await api.get('/tickets/export/excel', {
+                responseType: 'blob'
+            });
 
-        // Usar punto y coma (;) para compatibilidad con Excel en español
-        // Incluir 'sep=;' para que Excel auto-detecte el separador
-        const csvContent = 'sep=;\n' + [headers, ...rows].map(r => 
-            r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')
-        ).join('\n');
-
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        const tab = filterStatus === 'active' ? 'activos' : 'cerrados';
-        link.download = `tickets_${tab}_${new Date().toISOString().slice(0,10)}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
+            // Crear un objeto URL para el blob
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Reporte_MuniSupport_${new Date().toISOString().slice(0,10)}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            
+            // Limpieza
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error descargando el reporte Excel:', error);
+            alert('No se pudo generar el reporte Excel. Verifique sus permisos.');
+        } finally {
+            setRefreshing(false);
+        }
     };
 
     const filteredTickets = (filterStatus === 'active' ? activeTickets : closedTickets).filter(t => {
@@ -247,8 +242,8 @@ const Tickets = () => {
                 <div className="flex items-center gap-2">
                     {/* Botón Exportar */}
                     <button
-                        onClick={handleExportCSV}
-                        title="Exportar lista actual a Excel"
+                        onClick={handleExportExcel}
+                        title="Descargar Reporte Profesional Excel con Analíticas"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95"
                     >
                         <Download className="h-4 w-4" />

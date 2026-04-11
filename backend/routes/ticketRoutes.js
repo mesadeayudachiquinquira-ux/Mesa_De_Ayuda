@@ -11,7 +11,8 @@ const {
     addPublicMessage,
     deleteTicket,
     deleteMultipleTickets,
-    verifyPin
+    verifyPin,
+    exportTicketsExcel
 } = require('../controllers/ticketController');
 const { protect, admin } = require('../middleware/authMiddleware');
 const { upload } = require('../middleware/uploadMiddleware');
@@ -35,6 +36,7 @@ router.post('/public/:id/mensajes', addPublicMessage); // Mantener para compatib
 
 // Rutas Privadas (Requieren Auth)
 router.get('/', protect, getTickets);
+router.get('/export/excel', protect, admin, exportTicketsExcel);
 router.delete('/bulk-delete', protect, admin, deleteMultipleTickets);
 router.get('/:id', protect, getTicketById);
 router.post('/', protect, upload.single('adjunto'), createTicket);

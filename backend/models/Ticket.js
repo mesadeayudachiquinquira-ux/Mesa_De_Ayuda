@@ -13,7 +13,22 @@ const ticketSchema = new mongoose.Schema({
         type: String,
         enum: ['abierto', 'en_progreso', 'cerrado'],
         default: 'abierto',
-        index: true, // Índice para filtrado rápido por estado
+        index: true,
+    },
+    categoria: {
+        type: String,
+        enum: [
+            'Falla de Hardware',
+            'Red / Internet',
+            'Soporte de Software',
+            'Cuentas y Accesos',
+            'Correo Electrónico',
+            'Capacitación / Consulta',
+            'Mantenimiento Preventivo',
+            'Otro'
+        ],
+        required: false, // Solo es obligatorio al cerrar (validado en controlador)
+        index: true,
     },
     dependencia: {
         type: String,
