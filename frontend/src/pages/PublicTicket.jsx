@@ -11,7 +11,7 @@ import {
     User, 
     Mail, 
     Phone,
-    CornerVerticalLeft,
+    CornerDownLeft,
     ShieldCheck,
     Hash,
     ChevronLeft

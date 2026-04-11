@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { motion } from 'framer-motion';
 import {
-    BarChart3,
+    BarChart2,
     CheckCircle2,
     Clock,
     AlertCircle,
