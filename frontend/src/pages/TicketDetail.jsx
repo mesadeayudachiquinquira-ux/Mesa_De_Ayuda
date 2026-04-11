@@ -301,7 +301,11 @@ const TicketDetail = () => {
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
-                                            <span className="text-xs text-gray-400 ml-1">El ciudadano está escribiendo...</span>
+                                            <span className="text-xs text-gray-400 ml-1">
+                                                <span className="font-semibold text-gray-600">
+                                                    {ticket?.nombreContacto || ticket?.creadoPor?.nombre || 'El solicitante'}
+                                                </span> está escribiendo...
+                                            </span>
                                         </div>
                                     </div>
                                 )}
