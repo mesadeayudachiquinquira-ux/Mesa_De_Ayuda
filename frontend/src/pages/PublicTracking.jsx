@@ -219,7 +219,7 @@ const PublicTracking = () => {
                     </div>
                     <div className="flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs font-bold text-green-700 uppercase"><span>{ticket.estado.replace('_', ' ')}</span></span>
+                        <span className="text-xs font-bold text-green-700 uppercase"><span>{(ticket.estado || '').replace('_', ' ')}</span></span>
                     </div>
                 </div>
             </header>

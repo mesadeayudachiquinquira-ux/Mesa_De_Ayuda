@@ -157,7 +157,7 @@ const Dashboard = () => {
                           ${ticket.estado === 'abierto' ? 'bg-red-100 text-red-800' :
                                                         ticket.estado === 'en_progreso' ? 'bg-yellow-100 text-yellow-800' :
                                                             'bg-green-100 text-green-800'}`}>
-                                                    {ticket.estado.replace('_', ' ')}
+                                                    {(ticket.estado || '').replace('_', ' ')}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">

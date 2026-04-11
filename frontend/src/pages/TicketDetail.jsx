@@ -387,7 +387,7 @@ const TicketDetail = () => {
                     ${ticket.estado === 'abierto' ? 'bg-red-500' :
                                             ticket.estado === 'en_progreso' ? 'bg-yellow-500' :
                                                 'bg-green-500'}`}></span>
-                                    <span className="font-semibold text-gray-900 capitalize">{ticket.estado.replace('_', ' ')}</span>
+                                    <span className="font-semibold text-gray-900 capitalize">{(ticket.estado || '').replace('_', ' ')}</span>
                                 </div>
                             </div>
                             <div className="border-t border-gray-100 pt-4">
