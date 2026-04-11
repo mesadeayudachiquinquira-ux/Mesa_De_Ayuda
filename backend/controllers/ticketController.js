@@ -193,8 +193,19 @@ const createPublicTicket = async (req, res, next) => {
                 const mailText = `Hola,\n\nSe ha recibido una nueva solicitud en la plataforma MuniSupport.\n\nTítulo: ${titulo}\nDependencia: ${accessCode.dependencia}\nCódigo Interno: ${ticket._id}\n\nIngresa al panel para revisarla.`;
                 await sendMailToInternalUsers(adminEmails, `Nueva Solicitud: ${titulo}`, mailText);
             }
+
+            // --- ESTA ES LA PARTE QUE FALTABA ---
+            // Enviar correo de bienvenida al solicitante
+            if (correoContacto) {
+                sendMailToCitizen(correoContacto, 'bienvenida', {
+                    nombre: nombreContacto,
+                    titulo: titulo,
+                    dependencia: accessCode.dependencia,
+                    codigoAcceso: codigoAcceso
+                }).catch(err => console.error('Error enviando bienvenida al solicitante:', err));
+            }
         } catch (err) {
-            console.error('Error al crear notificaciones para soporte:', err);
+            console.error('Error al crear notificaciones y correos:', err);
         }
     } catch (error) {
         next(error);
