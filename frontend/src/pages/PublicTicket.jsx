@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import api from '../api/axios';
-import { LifeBuoy, Send, CheckCircle, AlertCircle, Loader2, Upload, User, Mail, Phone } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    LifeBuoy, 
+    Send, 
+    CheckCircle, 
+    AlertCircle, 
+    Loader2, 
+    Upload, 
+    User, 
+    Mail, 
+    Phone,
+    CornerVerticalLeft,
+    ShieldCheck,
+    Hash,
+    ChevronLeft
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const PublicTicket = () => {
@@ -26,8 +41,6 @@ const PublicTicket = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
-
-        // Auto-verify PIN when it reaches 5 digits
         if (name === 'pin') {
             setPinError(null);
             if (value.length === 5) {
@@ -52,279 +65,200 @@ const PublicTicket = () => {
         }
     };
 
-    const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
-    };
+    const handleFileChange = (e) => { setFile(e.target.files[0]); };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
-
         const data = new FormData();
-        data.append('nombreContacto', formData.nombreContacto);
-        data.append('correoContacto', formData.correoContacto);
-        data.append('telefonoContacto', formData.telefonoContacto);
-        data.append('titulo', formData.titulo);
-        data.append('descripcion', formData.descripcion);
-        data.append('pin', formData.pin);
-        if (file) {
-            data.append('adjunto', file);
-        }
+        Object.keys(formData).forEach(key => data.append(key, formData[key]));
+        if (file) data.append('adjunto', file);
 
         try {
-            console.log('Enviando ticket público con datos:', formData);
             const response = await api.post('/tickets/public', data, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
-            console.log('Respuesta exitosa del servidor:', response.data);
-            
             if (response.data && response.data._id) {
-                setAccessInfo({ 
-                    id: response.data._id, 
-                    code: response.data.codigoAcceso || 'ERROR' 
-                });
+                setAccessInfo({ id: response.data._id, code: response.data.codigoAcceso });
                 setSuccess(true);
-            } else {
-                throw new Error('La respuesta del servidor no contiene los datos del ticket');
             }
         } catch (err) {
-            console.error('Error al enviar ticket:', err);
-            setError(err.response?.data?.message || err.message || 'Error al enviar el ticket. Por favor, intente de nuevo.');
+            setError(err.response?.data?.message || 'Error al procesar su solicitud.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div key="public-ticket-root" className="min-h-screen py-12 px-4 sm:px-6 lg:px-8" translate="no">
-            <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in border border-slate-100">
-                <div className="bg-blue-600 p-8 text-white">
-                    <div className="flex items-center gap-3 mb-2">
-                        <LifeBuoy className="w-8 h-8" />
-                        <h1 className="text-2xl font-bold italic tracking-tight"><span>MuniSupport Chiquinquirá</span></h1>
-                    </div>
-                    <p className="text-blue-100"><span>Portal Público de Soporte Técnico</span></p>
+        <div className="min-h-screen bg-slate-50 font-['Outfit'] relative overflow-hidden py-20 px-4">
+            {/* Background decorative elements */}
+            <div className="absolute top-0 left-0 w-full h-96 bg-blue-600 rounded-b-[100px] z-0"></div>
+            <div className="absolute top-20 right-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-3xl z-0"></div>
+            <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-slate-200/50 rounded-full blur-3xl z-0"></div>
+
+            <div className="max-w-3xl mx-auto relative z-10">
+                {/* Header Branding */}
+                <div className="flex flex-col items-center mb-12 text-white">
+                    <motion.div 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white/20 backdrop-blur-xl p-4 rounded-3xl border border-white/30 shadow-2xl mb-6"
+                    >
+                        <LifeBuoy className="h-12 w-12" />
+                    </motion.div>
+                    <h1 className="text-4xl font-black tracking-tight mb-2">Portal Ciudadano</h1>
+                    <p className="text-blue-100 font-bold opacity-80 uppercase tracking-widest text-[10px]">Gestión de Requerimientos Institucionales</p>
                 </div>
 
-                <div className="p-8">
+                <AnimatePresence mode="wait">
                     {success ? (
-                        <div key="success-content" className="text-center animate-fade-in" translate="no">
-                            <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <CheckCircle className="text-green-600 w-12 h-12" />
+                        <motion.div 
+                            key="success"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="card !bg-white/90 backdrop-blur-2xl border-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] p-12 text-center"
+                        >
+                            <div className="bg-emerald-500 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-emerald-500/20">
+                                <CheckCircle className="text-white w-12 h-12" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2"><span>¡Nueva Solicitud Enviada!</span></h2>
-                            <p className="text-gray-600 mb-6 font-medium">
-                                <span>Hemos recibido tu solicitud. Guarda los siguientes datos para seguir el estado de tu ticket y chatear con soporte:</span>
+                            <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">¡Solicitud Radicada!</h2>
+                            <p className="text-slate-500 font-bold mb-10 max-w-md mx-auto leading-relaxed">
+                                Su caso ha sido asignado. Para el seguimiento inmediato y chat con soporte, utilice este código PIN único.
                             </p>
 
-                            <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100 space-y-4 text-left">
-                                <div key="pin-display">
-                                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider mb-2 text-center"><span>Tu Código de Acceso (PIN)</span></p>
-                                    <div className="bg-white p-6 rounded-2xl border border-blue-200 text-center shadow-inner">
-                                        <span className="text-4xl font-black text-blue-600 tracking-[0.3em]">{accessInfo.code}</span>
-                                    </div>
-                                    <p className="text-[10px] text-gray-400 text-center mt-3 uppercase font-bold"><span>Usa este código único para consultar el estado en cualquier momento</span></p>
+                            <div className="bg-slate-50 rounded-[32px] p-10 mb-10 border border-slate-100 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <ShieldCheck className="w-40 h-40" />
+                                </div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6">Credencial de Seguimiento</p>
+                                <div className="bg-white py-8 px-4 rounded-2xl border-2 border-dashed border-blue-200 shadow-inner">
+                                    <span className="text-6xl font-black text-blue-600 tracking-[0.2em]">{accessInfo.code}</span>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="flex flex-col gap-4">
                                 <button
                                     onClick={() => navigate(`/public-tracking/${accessInfo.code}`)}
-                                    className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-[0.98]"
+                                    className="w-full py-5 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 active:scale-[0.98]"
                                 >
-                                    <span>Ir al Seguimiento ahora</span>
+                                    Abrir Panel de Seguimiento
                                 </button>
                                 <button
                                     onClick={() => navigate('/')}
-                                    className="w-full py-3 text-gray-500 font-medium hover:text-gray-700 transition-colors"
+                                    className="w-full py-4 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
                                 >
-                                    <span>Volver al Inicio</span>
+                                    Finalizar Trámite
                                 </button>
                             </div>
-                        </div>
+                        </motion.div>
                     ) : (
-                        <div key="form-content" className="animate-fade-in">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <Send className="w-5 h-5 text-blue-600" />
-                                <span>Registrar Nueva Incidencia</span>
-                            </h2>
+                        <motion.div 
+                            key="form"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="card !bg-white/95 backdrop-blur-2xl border-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] p-10"
+                        >
+                            <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
+                                <h2 className="text-xl font-black text-slate-900 flex items-center gap-3 tracking-tight">
+                                    <Send className="p-2 bg-blue-50 text-blue-600 rounded-xl h-9 w-9" />
+                                    Nuevo Registro de Incidencia
+                                </h2>
+                                <button onClick={() => navigate('/login')} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 flex items-center transition-all">
+                                    <ChevronLeft className="h-3 w-3 mr-1" /> Login
+                                </button>
+                            </div>
 
-                            {error && (
-                                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 flex items-center gap-3 rounded">
-                                    <AlertCircle className="shrink-0" />
-                                    <p className="text-sm font-medium"><span>{error}</span></p>
-                                </div>
-                            )}
-
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                            <User className="w-4 h-4 text-gray-400" /> <span>Nombre Completo *</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="nombreContacto"
-                                            required
-                                            value={formData.nombreContacto}
-                                            onChange={handleChange}
-                                            placeholder="Ej. Juan Pérez"
-                                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                            <Mail className="w-4 h-4 text-gray-400" /> <span>Correo Electrónico *</span>
-                                        </label>
-                                        <input
-                                            type="email"
-                                            name="correoContacto"
-                                            required
-                                            value={formData.correoContacto}
-                                            onChange={handleChange}
-                                            placeholder="correo@ejemplo.com"
-                                            className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <Phone className="w-4 h-4 text-gray-400" /> <span>Teléfono (Opcional)</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="telefonoContacto"
-                                        value={formData.telefonoContacto}
-                                        onChange={handleChange}
-                                        placeholder="+57 300 123 4567"
-                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-700"><span>Título de la incidencia *</span></label>
-                                    <input
-                                        type="text"
-                                        name="titulo"
-                                        required
-                                        value={formData.titulo}
-                                        onChange={handleChange}
-                                        placeholder="Breve descripción del problema"
-                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-700"><span>Descripción detallada *</span></label>
-                                    <textarea
-                                        name="descripcion"
-                                        required
-                                        rows="4"
-                                        value={formData.descripcion}
-                                        onChange={handleChange}
-                                        placeholder="Explique su problema con detalle..."
-                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none"
-                                    ></textarea>
-                                </div>
-
-                                <div className="space-y-4 col-span-1 md:col-span-2">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-semibold text-gray-700"><span>Código de Oficina (PIN de 5 dígitos) *</span></label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    name="pin"
-                                                    maxLength="5"
-                                                    placeholder="Ej. 12345"
-                                                    value={formData.pin}
-                                                    onChange={handleChange}
-                                                    className={`w-full px-4 py-2.5 bg-white border ${pinError ? 'border-red-500' : verifiedOffice ? 'border-green-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-mono tracking-widest text-lg`}
-                                                />
-                                                {verifyingPin && (
-                                                    <div className="absolute right-3 top-3">
-                                                        <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                                                    </div>
-                                                )}
-                                            </div>
+                            <form onSubmit={handleSubmit} className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Identidad del Solicitante</label>
+                                        <div className="relative group">
+                                            <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-blue-500" />
+                                            <input type="text" name="nombreContacto" required value={formData.nombreContacto} onChange={handleChange} placeholder="Nombre completo" className="input-field !pl-12" />
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Canal de Notificación</label>
+                                        <div className="relative group">
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-blue-500" />
+                                            <input type="email" name="correoContacto" required value={formData.correoContacto} onChange={handleChange} placeholder="email@ejemplo.com" className="input-field !pl-12" />
+                                        </div>
+                                    </div>
+                                </div>
 
-                                        <div className="h-[46px] flex items-center">
-                                            {verifiedOffice ? (
-                                                <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-xl border border-green-100 flex-1 animate-pulse-subtle">
-                                                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                                                    <div className="text-xs">
-                                                        <p className="font-bold"><span>Oficina Identificada:</span></p>
-                                                        <p><span>{verifiedOffice.dependencia} {verifiedOffice.seccion ? `- ${verifiedOffice.seccion}` : ''}</span></p>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Asunto de Prioridad</label>
+                                    <div className="relative group">
+                                        <CornerVerticalLeft className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-blue-500" />
+                                        <input type="text" name="titulo" required value={formData.titulo} onChange={handleChange} placeholder="Resumen del requerimiento" className="input-field !pl-12" />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Descripción de la Situación</label>
+                                    <textarea name="descripcion" required rows="4" value={formData.descripcion} onChange={handleChange} placeholder="Detalle los hallazgos o necesidades técnicas con precisión..." className="input-field resize-none"></textarea>
+                                </div>
+
+                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col md:flex-row gap-6 items-end">
+                                    <div className="flex-1 w-full">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 flex items-center">
+                                            <Hash className="h-3 w-3 mr-1" /> PIN de Oficina
+                                        </label>
+                                        <input type="text" name="pin" maxLength="5" value={formData.pin} onChange={handleChange} className={`input-field !text-center !text-2xl font-black tracking-[0.5em] transition-all ${pinError ? '!border-red-500 !bg-red-50' : verifiedOffice ? '!border-emerald-500 !bg-emerald-50' : ''}`} placeholder="00000" />
+                                    </div>
+                                    <div className="flex-1 w-full h-[60px]">
+                                        <AnimatePresence mode="wait">
+                                            {verifyingPin ? (
+                                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex items-center justify-center text-blue-500 gap-2">
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Validando...</span>
+                                                </motion.div>
+                                            ) : verifiedOffice ? (
+                                                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="h-full bg-emerald-500 text-white rounded-2xl p-4 flex items-center gap-3 shadow-lg shadow-emerald-500/20">
+                                                    <ShieldCheck className="h-6 w-6 shrink-0" />
+                                                    <div className="overflow-hidden">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-80">Oficina Autorizada</p>
+                                                        <p className="text-xs font-black truncate">{verifiedOffice.dependencia}</p>
                                                     </div>
-                                                </div>
-                                            ) : pinError ? (
-                                                <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-xl border border-red-100 flex-1">
-                                                    <AlertCircle className="w-5 h-5" />
-                                                    <span className="text-xs font-semibold"><span>{pinError}</span></span>
-                                                </div>
+                                                </motion.div>
                                             ) : (
-                                                <div className="flex items-center gap-2 p-3 bg-gray-50 text-gray-500 rounded-xl border border-gray-100 flex-1">
-                                                    <LifeBuoy className="w-5 h-5" />
-                                                    <span className="text-xs italic"><span>Ingrese el código para validar la oficina</span></span>
+                                                <div className="h-full flex items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 rounded-2xl px-4 text-center">
+                                                    <p className="text-[9px] font-black uppercase tracking-tight">Requiere PIN para radicar</p>
                                                 </div>
                                             )}
-                                        </div>
+                                        </AnimatePresence>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-semibold text-gray-700"><span>Adjuntar Archivo</span></label>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Soporte Visual</label>
                                     <div className="relative group">
-                                        <input
-                                            type="file"
-                                            onChange={handleFileChange}
-                                            className="hidden"
-                                            id="public-file-upload"
-                                        />
-                                        <label
-                                            htmlFor="public-file-upload"
-                                            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-white border-2 border-dashed border-gray-400 rounded-xl hover:border-blue-600 hover:bg-blue-50 cursor-pointer transition-all group-hover:text-blue-600"
-                                        >
-                                            <Upload className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
-                                            <span className="text-sm text-gray-500 group-hover:text-blue-600 truncate">
-                                                <span>{file ? file.name : 'Subir imagen o doc'}</span>
-                                            </span>
+                                        <input type="file" onChange={handleFileChange} className="hidden" id="file" />
+                                        <label htmlFor="file" className="flex items-center justify-between input-field group-hover:bg-slate-50 cursor-pointer">
+                                            <span className="truncate opacity-60 italic">{file ? file.name : 'Vicular imagen o documento técnico...'}</span>
+                                            <Upload className="h-4 w-4 text-blue-500" />
                                         </label>
                                     </div>
                                 </div>
 
-                                <div className="pt-4 flex gap-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/login')}
-                                        className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-all"
-                                    >
-                                        <span>Cancelar</span>
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={loading || !verifiedOffice}
-                                        className={`flex-2 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-200 
-                                    ${loading || !verifiedOffice ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                                    >
-                                        {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-                                        <span>{loading ? 'Enviando...' : 'Enviar Reporte de Oficina'}</span>
-                                    </button>
-                                </div>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading || !verifiedOffice}
+                                    className="w-full py-5 btn-primary disabled:opacity-50 disabled:bg-slate-300 flex items-center justify-center gap-3"
+                                >
+                                    {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                                    {loading ? 'Transmitiendo...' : 'Emitir Reporte Oficial'}
+                                </button>
                             </form>
-                        </div>
+                        </motion.div>
                     )}
-                </div>
-            </div>
+                </AnimatePresence>
 
-            <p className="text-center text-gray-400 text-sm mt-8">
-                <span>&copy; {new Date().getFullYear()} MuniSupport Chiquinquirá. Todos los derechos reservados.</span>
-            </p>
+                <p className="text-center text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-12 opacity-50 italic">
+                    © {new Date().getFullYear()} Municipalidad de Soporte Técnico • Seguridad Nivel 4
+                </p>
+            </div>
         </div>
     );
 };

@@ -1,33 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
+import { motion } from 'framer-motion';
 import {
     BarChart3,
     CheckCircle2,
     Clock,
     AlertCircle,
-    Ticket as TicketIcon
+    Ticket as TicketIcon,
+    ArrowRight,
+    TrendingUp,
+    MessageSquare
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 
-const StatCard = ({ title, count, icon: Icon, colorClass, gradientClass }) => (
-    <div className={`card relative overflow-hidden group shadow-md border-gray-200 transition-all duration-300`}>
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradientClass} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
-        <div className="flex items-center relative z-10">
-            <div className={`p-4 rounded-xl ${colorClass.split(' ')[0]} bg-opacity-10 mr-4 border border-current opacity-80`}>
-                <Icon className={`h-8 w-8 ${colorClass.split(' ')[1]}`} />
+const StatCard = ({ title, count, icon: Icon, gradientClass, delay }) => (
+    <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.5 }}
+        className="card group relative overflow-hidden"
+    >
+        <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br ${gradientClass} opacity-5 group-hover:opacity-10 transition-opacity duration-500`} />
+        <div className="flex items-center space-x-5 relative z-10">
+            <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientClass} text-white shadow-lg`}>
+                <Icon className="h-7 w-7" />
             </div>
             <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">{title}</p>
-                <p className="text-3xl font-black text-gray-900 mt-1">{count}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
+                <motion.p 
+                    initial={{ scale: 0.5 }} 
+                    animate={{ scale: 1 }} 
+                    className="text-3xl font-black text-slate-900 mt-0.5 tracking-tighter"
+                >
+                    {count}
+                </motion.p>
             </div>
         </div>
-    </div>
+    </motion.div>
 );
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         total: 0,
         abiertos: 0,
@@ -42,12 +58,10 @@ const Dashboard = () => {
         try {
             const { data } = await api.get('/tickets');
 
-            // Calculate stats
             const abiertos = data.filter(t => t.estado === 'abierto').length;
             const en_progreso = data.filter(t => t.estado === 'en_progreso').length;
             const cerrados = data.filter(t => t.estado === 'cerrado').length;
             
-            // Frecuencia por categorías
             const categorias = data.reduce((acc, t) => {
                 if (t.estado === 'cerrado' && t.categoria) {
                     acc[t.categoria] = (acc[t.categoria] || 0) + 1;
@@ -63,7 +77,6 @@ const Dashboard = () => {
                 categorias
             });
 
-            // Get 5 most recent tickets
             const recent = data.sort((a, b) => new Date(b.fechaCreación) - new Date(a.fechaCreación)).slice(0, 5);
             setRecentTickets(recent);
 
@@ -76,151 +89,157 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchDashboardData();
-
-        // Escuchar actualizaciones globales vía WebSocket
         socket.connect();
         socket.on('ticketsChanged', fetchDashboardData);
-
         return () => {
             socket.off('ticketsChanged', fetchDashboardData);
         };
     }, []);
 
-    if (loading) return <div className="flex justify-center items-center h-64"><span className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></span></div>;
+    if (loading) return (
+        <div className="flex justify-center items-center h-full">
+            <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full shadow-lg" 
+            />
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-8 max-w-7xl mx-auto"
+        >
+            {/* Cabecera Premium */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Hola, {user?.nombre}! 👋</h1>
-                    <p className="text-gray-500 mt-1">Aquí tienes un resumen de la actividad de tus tickets.</p>
+                    <motion.h1 
+                        initial={{ x: -20 }}
+                        animate={{ x: 0 }}
+                        className="text-4xl font-black text-slate-900 tracking-tight"
+                    >
+                        Panel de Control <span className="text-blue-600">.</span>
+                    </motion.h1>
+                    <p className="text-slate-500 font-bold mt-2 flex items-center">
+                        Gestión municipal inteligente para <span className="text-slate-800 ml-1.5">{user?.nombre}</span>
+                    </p>
                 </div>
-                <div className="mt-4 sm:mt-0">
-                    <Link to="/app/tickets" className="btn-primary inline-flex items-center">
-                        <TicketIcon className="h-5 w-5 mr-2" />
-                        Ver todos los tickets
+                <div className="flex items-center space-x-3">
+                    <Link to="/app/tickets" className="btn-primary flex items-center group">
+                        Gestionar Solicitudes
+                        <ArrowRight className="h-4 w-4 ml-2 transition-transform group-hover:translate-x-1" />
                     </Link>
                 </div>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    title="Total Tickets"
-                    count={stats.total}
-                    icon={BarChart3}
-                    colorClass="bg-blue-500 text-blue-600"
-                    gradientClass="from-blue-400 to-blue-600"
-                />
-                <StatCard
-                    title="Abiertos"
-                    count={stats.abiertos}
-                    icon={AlertCircle}
-                    colorClass="bg-red-500 text-red-600"
-                    gradientClass="from-red-400 to-red-600"
-                />
-                <StatCard
-                    title="En Progreso"
-                    count={stats.en_progreso}
-                    icon={Clock}
-                    colorClass="bg-yellow-500 text-yellow-600"
-                    gradientClass="from-yellow-400 to-yellow-600"
-                />
-                <StatCard
-                    title="Cerrados"
-                    count={stats.cerrados}
-                    icon={CheckCircle2}
-                    colorClass="bg-green-500 text-green-600"
-                    gradientClass="from-green-400 to-green-600"
-                />
+                <StatCard title="Total Tickets" count={stats.total} icon={TicketIcon} gradientClass="from-slate-700 to-slate-900" delay={0.1} />
+                <StatCard title="Abiertos" count={stats.abiertos} icon={AlertCircle} gradientClass="from-red-500 to-red-600" delay={0.2} />
+                <StatCard title="En Proceso" count={stats.en_progreso} icon={Clock} gradientClass="from-amber-400 to-amber-600" delay={0.3} />
+                <StatCard title="Cerrados" count={stats.cerrados} icon={CheckCircle2} gradientClass="from-blue-500 to-blue-700" delay={0.4} />
             </div>
 
-            {/* Nueva Sección: Análisis de Incidencias */}
-            {Object.keys(stats.categorias).length > 0 && (
-                <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <BarChart3 className="h-5 w-5 mr-2 text-primary-600" />
-                        Incidencias más Frecuentes (Casos Resueltos)
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                {/* Análisis de Incidencias */}
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="lg:col-span-1 space-y-6"
+                >
+                    <h2 className="text-xl font-black text-slate-900 flex items-center underline decoration-blue-500 decoration-4 underline-offset-8">
+                        <TrendingUp className="h-5 w-5 mr-3 text-blue-600" />
+                        Frecuencia
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Object.entries(stats.categorias)
-                            .sort((a, b) => b[1] - a[1])
-                            .slice(0, 6)
-                            .map(([cat, count]) => (
-                                <div key={cat} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-bold text-gray-700 truncate pr-2">{cat}</span>
-                                        <span className="bg-primary-50 text-primary-700 text-xs font-black px-2 py-1 rounded-md">
-                                            {count} casos
-                                        </span>
+                    <div className="card space-y-5">
+                        {Object.keys(stats.categorias).length > 0 ? (
+                            Object.entries(stats.categorias)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 5)
+                                .map(([cat, count], idx) => (
+                                    <div key={cat} className="space-y-2">
+                                        <div className="flex justify-between items-center text-xs font-bold">
+                                            <span className="text-slate-600 uppercase tracking-wider">{cat}</span>
+                                            <span className="text-blue-600">{count} casos</span>
+                                        </div>
+                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(count / stats.cerrados) * 100}%` }}
+                                                transition={{ delay: 0.7 + (idx * 0.1), duration: 1 }}
+                                                className="h-full bg-gradient-to-r from-blue-500 to-blue-700 rounded-full"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                                        <div 
-                                            className="bg-primary-500 h-full rounded-full transition-all duration-1000" 
-                                            style={{ width: `${Math.min((count / stats.cerrados) * 100, 100)}%` }} 
-                                        />
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                        ) : (
+                            <div className="text-center py-8 text-slate-400 font-bold text-sm italic">Sin datos registrados</div>
+                        )}
                     </div>
-                </div>
-            )}
+                </motion.div>
 
-            {/* Recent Tickets Section */}
-            <div className="mt-8">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Tickets Recientes</h2>
-                <div className="card overflow-hidden !p-0">
-                    {recentTickets.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">No hay tickets recientes</div>
-                    ) : (
+                {/* Tickets Recientes */}
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="lg:col-span-2 space-y-6"
+                >
+                    <h2 className="text-xl font-black text-slate-900 flex items-center underline decoration-blue-500 decoration-4 underline-offset-8">
+                        <MessageSquare className="h-5 w-5 mr-3 text-blue-600" />
+                        Actividad Reciente
+                    </h2>
+                    <div className="card !p-0 overflow-hidden shadow-xl shadow-slate-200/50">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-100/50">
+                            <table className="min-w-full divide-y divide-slate-100">
+                                <thead className="bg-slate-50/50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asunto</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Dependencia</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acción</th>
+                                        <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Solicitud</th>
+                                        <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado</th>
+                                        <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
+                                        <th className="px-6 py-4"></th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white/50 divide-y divide-gray-200">
-                                    {recentTickets.map(ticket => (
-                                        <tr key={ticket._id} className="hover:bg-blue-50/30 transition-colors">
+                                <tbody className="divide-y divide-slate-100 bg-white/50">
+                                    {recentTickets.map((ticket, idx) => (
+                                        <motion.tr 
+                                            key={ticket._id} 
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ delay: 0.8 + (idx * 0.05) }}
+                                            className="hover:bg-blue-50/30 transition-colors cursor-pointer group"
+                                            onClick={() => navigate(`/app/tickets/${ticket._id}`)}
+                                        >
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900 truncate max-w-xs">{ticket.titulo}</div>
-                                                <div className="text-[10px] text-gray-400 italic">
-                                                    {ticket.esPúblico ? `Sol: ${ticket.nombreContacto}` : `Sop: ${ticket.creadoPor?.nombre || '...'}`}
-                                                </div>
+                                                <div className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{ticket.titulo}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{ticket.dependencia}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                          ${ticket.estado === 'abierto' ? 'bg-red-100 text-red-800' :
-                                                        ticket.estado === 'en_progreso' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-green-100 text-green-800'}`}>
-                                                    {(ticket.estado || '').replace('_', ' ')}
+                                                <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-widest
+                                                    ${ticket.estado === 'abierto' ? 'bg-red-50 text-red-600' :
+                                                      ticket.estado === 'en_progreso' ? 'bg-amber-50 text-amber-600' :
+                                                      'bg-blue-50 text-blue-600'}`}>
+                                                    {ticket.estado.replace('_', ' ')}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                                                <div className="text-sm text-gray-700 font-medium truncate max-w-[160px]">{ticket.dependencia}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500">
                                                 {new Date(ticket.fechaCreación).toLocaleDateString()}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <Link to={`/app/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 font-semibold">
-                                                    Ver detalle &rarr;
-                                                </Link>
+                                            <td className="px-6 py-4 text-right">
+                                                <ArrowRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-blue-600" />
                                             </td>
-                                        </tr>
+                                        </motion.tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                    )}
-                </div>
+                    </div>
+                </motion.div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

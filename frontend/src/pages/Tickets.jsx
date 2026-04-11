@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Search, Filter, Trash2, AlertTriangle, Download, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    Plus, 
+    Search, 
+    Filter, 
+    Trash2, 
+    AlertTriangle, 
+    Download, 
+    Clock, 
+    ChevronRight,
+    SearchX,
+    FolderArchive,
+    Activity,
+    UserCheck,
+    CheckCircle2
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
 import { toast } from 'react-hot-toast';
@@ -21,6 +36,7 @@ const ORGANIGRAM = {
 
 const Tickets = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -43,11 +59,8 @@ const Tickets = () => {
 
     useEffect(() => {
         fetchTickets();
-
-        // Escuchar actualizaciones globales vía WebSocket
         socket.connect();
         socket.on('ticketsChanged', fetchTicketsSilently);
-
         return () => {
             socket.off('ticketsChanged', fetchTicketsSilently);
         };
@@ -73,7 +86,6 @@ const Tickets = () => {
         } catch (error) {
             console.error('Error en recarga automática:', error);
         } finally {
-            // Un pequeño delay para que el indicador sea perceptible pero no molesto
             setTimeout(() => setRefreshing(false), 2000);
         }
     };
@@ -81,6 +93,7 @@ const Tickets = () => {
     const handleCreateTicket = async (e) => {
         e.preventDefault();
         setSubmitting(true);
+        const loadingToast = toast.loading('Creando solicitud...');
         try {
             const formData = new FormData();
             formData.append('titulo', titulo);
@@ -98,10 +111,10 @@ const Tickets = () => {
             setShowModal(false);
             setTitulo(''); setDescripcion(''); setDependencia(''); setSeccion(''); setFile(null);
             fetchTickets();
-            toast.success('Ticket creado correctamente');
+            toast.success('Ticket creado correctamente', { id: loadingToast });
         } catch (error) {
             console.error('Error creando ticket:', error);
-            toast.error(error.response?.data?.message || 'Error al crear el ticket');
+            toast.error(error.response?.data?.message || 'Error al crear el ticket', { id: loadingToast });
         } finally {
             setSubmitting(false);
         }
@@ -125,67 +138,63 @@ const Tickets = () => {
 
     const handleBulkDelete = async () => {
         setSubmitting(true);
+        const loadingToast = toast.loading('Eliminando tickets...');
         try {
             await api.delete('/tickets/bulk-delete', { data: { ids: selectedTickets } });
             setSelectedTickets([]);
             setShowDeleteModal(false);
             fetchTickets();
-            toast.success('Tickets eliminados con éxito');
+            toast.success('Tickets eliminados con éxito', { id: loadingToast });
         } catch (error) {
             console.error('Error en borrado masivo:', error);
-            toast.error('No se pudieron eliminar los tickets seleccionados.');
+            toast.error('No se pudieron eliminar los tickets seleccionados.', { id: loadingToast });
         } finally {
             setSubmitting(false);
         }
     };
 
-    // ─── Semáforo de urgencia ──────────────────────────────────────────
     const getUrgency = (ticket) => {
         if (ticket?.estado === 'cerrado') return null;
         const created = new Date(ticket?.fechaCreación);
         const hoursElapsed = (Date.now() - created) / (1000 * 60 * 60);
-        if (hoursElapsed >= 48) return 'critical';  // +48h → rojo
-        if (hoursElapsed >= 24) return 'warning';   // +24h → amarillo
+        if (hoursElapsed >= 48) return 'critical';
+        if (hoursElapsed >= 24) return 'warning';
         return null;
     };
 
     const activeTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado !== 'cerrado') : [];
     const closedTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado === 'cerrado') : [];
 
-    // Calcular responsables de tickets cerrados
     const statsResponsables = closedTickets.reduce((acc, t) => {
         const nombre = t.atendidoPorNombre || 'No Registrado';
         acc[nombre] = (acc[nombre] || 0) + 1;
         return acc;
     }, {});
     
-    // Convertir a array y ordenar por cantidad de tickets (mayor a menor)
     const topResponsables = Object.entries(statsResponsables)
         .map(([nombre, count]) => ({ nombre, count }))
         .sort((a, b) => b.count - a.count);
 
-    // ─── Exportar a Excel Profesional (.xlsx) ─────────────────────────
     const handleExportExcel = async () => {
         try {
             setRefreshing(true);
+            toast.loading('Generando reporte Excel...', { duration: 3000 });
             const response = await api.get('/tickets/export/excel', {
                 responseType: 'blob'
             });
 
-            // Crear un objeto URL para el blob
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Reporte_MuniSupport_${new Date().toISOString().slice(0,10)}.xlsx`);
             document.body.appendChild(link);
             link.click();
-            
-            // Limpieza
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(url);
+            toast.success('Reporte descargado');
         } catch (error) {
             console.error('Error descargando el reporte Excel:', error);
-            toast.error('No se pudo generar el reporte Excel. Verifique sus permisos.');
+            toast.error('Error al generar el reporte.');
         } finally {
             setRefreshing(false);
         }
@@ -197,390 +206,393 @@ const Tickets = () => {
             const titulo = (t?.titulo || 'SIN TITULO').toLowerCase();
             const estado = (t?.estado || 'SIN ESTADO').toLowerCase();
             const responsable = (t?.atendidoPorNombre || '').toLowerCase();
-            
             const matchSearch = titulo.includes(busqueda) || estado.includes(busqueda) || responsable.includes(busqueda);
-            
             if (filterStatus === 'closed' && selectedResponsable) {
                 return matchSearch && (t.atendidoPorNombre || 'No Registrado') === selectedResponsable;
             }
-            
             return matchSearch;
         } catch (err) {
-            console.error('Error filtrando ticket:', t, err);
             return false;
         }
     });
 
-    // Añadir efecto para limpiar el responsable seleccionado si cambiamos de pestaña
     useEffect(() => {
-        if (filterStatus === 'active') {
-            setSelectedResponsable('');
-        }
+        if (filterStatus === 'active') setSelectedResponsable('');
     }, [filterStatus]);
 
-    // Debug log para ver qué llega exactamente
-    useEffect(() => {
-        if (tickets.length > 0) {
-            console.log('Tickets cargados:', tickets.length);
-            console.log('Ejemplo primer ticket:', tickets[0]);
-        }
-    }, [tickets]);
+    if (loading) return (
+        <div className="flex justify-center items-center h-64">
+             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="h-10 w-10 border-4 border-blue-600 border-t-transparent rounded-full" />
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-8"
+        >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-gray-900">Gestión de Tickets</h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Gestión de Solicitudes</h1>
                         {refreshing && (
-                            <div className="flex items-center text-blue-500 animate-pulse">
-                                <span className="h-2 w-2 bg-blue-500 rounded-full mr-2"></span>
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Actualizando...</span>
-                            </div>
+                            <motion.div 
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }}
+                                className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full flex items-center"
+                            >
+                                <Activity className="h-3 w-3 mr-2 animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando</span>
+                            </motion.div>
                         )}
                     </div>
-                    <p className="text-gray-500 mt-1">Lista completa y estado de todos los requerimientos.</p>
+                    <p className="text-slate-500 font-bold mt-1">Administre y resuelva los requerimientos municipales.</p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {/* Botón Exportar - Solo visible en la pestaña de Cerrados */}
-                    {filterStatus === 'closed' && (
-                        <button
-                            onClick={handleExportExcel}
-                            title="Descargar Reporte Profesional Excel con Analíticas"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95 animate-in fade-in zoom-in duration-200"
-                        >
-                            <Download className="h-4 w-4" />
-                            Exportar Excel
-                        </button>
-                    )}
+                <div className="flex items-center gap-3">
+                    <AnimatePresence>
+                        {filterStatus === 'closed' && (
+                            <motion.button
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                onClick={handleExportExcel}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black rounded-xl shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
+                            >
+                                <Download className="h-4 w-4" />
+                                Exportar Reporte
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="btn-primary inline-flex items-center justify-center whitespace-nowrap px-6"
+                        className="btn-primary flex items-center"
                     >
                         <Plus className="h-5 w-5 mr-2" />
-                        Nuevo Ticket
+                        Nuevo Requerimiento
                     </button>
                 </div>
             </div>
 
             {/* Bulk Actions Bar */}
-            {selectedTickets.length > 0 && user?.rol === 'admin' && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
-                    <div className="flex items-center text-blue-800">
-                        <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-3">
-                            {selectedTickets.length}
-                        </span>
-                        <p className="font-medium text-sm">Tickets seleccionados para eliminar definitivamente</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setSelectedTickets([])}
-                            className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
-                        >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={() => setShowDeleteModal(true)}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-red-100 transition-all flex items-center"
-                        >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar ({selectedTickets.length})
-                        </button>
-                    </div>
-                </div>
-            )}
+            <AnimatePresence>
+                {selectedTickets.length > 0 && user?.rol === 'admin' && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="bg-slate-900 text-white rounded-2xl p-4 flex items-center justify-between shadow-2xl"
+                    >
+                        <div className="flex items-center">
+                            <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-black mr-4 shadow-lg shadow-blue-600/30">
+                                {selectedTickets.length}
+                            </div>
+                            <p className="font-bold text-sm tracking-tight text-slate-300">Elementos seleccionados para acción masiva</p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setSelectedTickets([])}
+                                className="px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+                            >
+                                Descartar
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-600/20 transition-all flex items-center"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Eliminar Selección
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Tabs & Search Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-gray-200 pb-0">
-                <div className="flex space-x-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl space-x-1">
                     <button
                         onClick={() => setFilterStatus('active')}
-                        className={`pb-4 text-sm font-bold transition-all relative ${filterStatus === 'active' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${filterStatus === 'active' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
-                        Tickets Activos
-                        <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] ${filterStatus === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                        <Activity className="h-4 w-4 mr-2" />
+                        Activos
+                        <span className={`ml-2 px-2 py-0.5 rounded-lg ${filterStatus === 'active' ? 'bg-blue-50' : 'bg-slate-200'}`}>
                             {activeTickets.length}
                         </span>
-                        {filterStatus === 'active' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full shadow-[0_-2px_8px_rgba(37,99,235,0.4)]" />}
                     </button>
                     <button
                         onClick={() => setFilterStatus('closed')}
-                        className={`pb-4 text-sm font-bold transition-all relative ${filterStatus === 'closed' ? 'text-gray-700' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${filterStatus === 'closed' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                     >
-                        Archivo (Cerrados)
-                        <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] ${filterStatus === 'closed' ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500'}`}>
+                        <FolderArchive className="h-4 w-4 mr-2" />
+                        Archivo
+                        <span className={`ml-2 px-2 py-0.5 rounded-lg ${filterStatus === 'closed' ? 'bg-slate-200' : 'bg-slate-200'}`}>
                             {closedTickets.length}
                         </span>
-                        {filterStatus === 'closed' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600 rounded-t-full" />}
                     </button>
                 </div>
 
-                <div className="relative w-full md:max-w-sm mb-4">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-5 w-5 text-gray-400" />
-                    </div>
+                <div className="relative w-full md:max-w-xs">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                         type="text"
-                        className="pl-10 input-field py-2"
-                        placeholder="Buscar en esta lista..."
+                        className="input-field pl-11 !py-2.5 text-sm"
+                        placeholder="Filtrar por asunto o técnico..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
             </div>
 
-            {/* Estadisticas de Resolución (solo admin en archivo cerrados) */}
-            {user?.rol === 'admin' && filterStatus === 'closed' && closedTickets.length > 0 && topResponsables.length > 0 && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 animate-in fade-in slide-in-from-top-4">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wider flex items-center">
-                            <span className="text-xl mr-2">🏆</span>
-                            Ranking de Resolución
+            {/* Ranking de Resolución */}
+            {user?.rol === 'admin' && filterStatus === 'closed' && topResponsables.length > 0 && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="card !bg-blue-600 text-white"
+                >
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xs font-black uppercase tracking-[0.2em] flex items-center">
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Elite de Resolución Municipal
                         </h3>
                         {selectedResponsable && (
-                            <button onClick={() => setSelectedResponsable('')} className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-full transition-colors">
-                                Quitar filtro: {selectedResponsable}
+                            <button onClick={() => setSelectedResponsable('')} className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                Ver todos los técnicos
                             </button>
                         )}
                     </div>
-                    <div className="flex flex-wrap gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {topResponsables.slice(0, 5).map((r, idx) => (
-                            <div 
+                            <button 
                                 key={r.nombre} 
                                 onClick={() => setSelectedResponsable(selectedResponsable === r.nombre ? '' : r.nombre)}
-                                className={`flex items-center bg-white border ${selectedResponsable === r.nombre ? 'border-primary-500 ring-2 ring-primary-100' : 'border-transparent'} rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer min-w-[200px]`}
+                                className={`flex flex-col items-center p-4 rounded-2xl transition-all duration-300 ${selectedResponsable === r.nombre ? 'bg-white text-blue-600 scale-105 shadow-xl' : 'bg-white/10 text-white hover:bg-white/15'}`}
                             >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mr-3 ${idx === 0 ? 'bg-yellow-100 text-yellow-700 shadow-inner' : idx === 1 ? 'bg-gray-100 text-gray-600' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-blue-50 text-blue-600'}`}>
-                                    #{idx + 1}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]" title={r.nombre}>{r.nombre}</p>
-                                    <p className="text-xs font-semibold text-blue-600 bg-blue-50 inline-block px-2 py-0.5 mt-1 rounded-md">{r.count} resueltos</p>
-                                </div>
-                            </div>
+                                <span className="text-lg mb-2">{idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🎖️'}</span>
+                                <p className="text-[10px] font-black uppercase tracking-tighter truncate w-full text-center mb-1">{r.nombre}</p>
+                                <p className={`text-xs font-black ${selectedResponsable === r.nombre ? 'text-blue-500' : 'text-blue-200'}`}>{r.count} éxitos</p>
+                            </button>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             )}
 
-            {/* Tickets Table container with translation isolation */}
-            <div className="card overflow-hidden !p-0" translate="no">
-                <div key={loading ? 'loading' : (filteredTickets.length > 0 ? 'list' : 'empty')}>
-                    {loading ? (
-                        <div className="flex justify-center p-12">
-                            <span className="animate-spin h-8 w-8 border-4 border-primary-500 border-t-transparent rounded-full"></span>
-                        </div>
-                    ) : filteredTickets.length === 0 ? (
-                        <div className="p-12 text-center text-gray-500">
-                            No se encontraron tickets con "<b>{searchTerm}</b>" o no hay tickets creados.
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-300">
-                            <thead className="bg-gray-100">
+            {/* Table */}
+            <div className="card !p-0 overflow-hidden shadow-2xl shadow-slate-200/50">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-100">
+                        <thead className="bg-slate-50/50">
+                            <tr>
+                                <th className="px-6 py-5 text-left w-10">
+                                    {user?.rol === 'admin' && (
+                                        <input
+                                            type="checkbox"
+                                            className="rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 h-5 w-5 bg-white shadow-sm"
+                                            checked={filteredTickets.length > 0 && selectedTickets.length === filteredTickets.length}
+                                            onChange={() => handleSelectAll(filteredTickets)}
+                                        />
+                                    )}
+                                </th>
+                                <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Referencia y Solicitante</th>
+                                <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estado</th>
+                                <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hidden md:table-cell">Dependencia</th>
+                                <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Fecha</th>
+                                <th className="px-6 py-5 border-l border-slate-50"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 bg-white/40">
+                            {filteredTickets.length === 0 ? (
                                 <tr>
-                                    <th className="px-6 py-4 text-left">
-                                        {user?.rol === 'admin' && (
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
-                                                checked={filteredTickets.length > 0 && selectedTickets.length === filteredTickets.length}
-                                                onChange={() => handleSelectAll(filteredTickets)}
-                                            />
-                                        )}
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Asunto / Remitente</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Dependencia / Sección</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
+                                    <td colSpan="6" className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center">
+                                            <SearchX className="h-12 w-12 text-slate-200 mb-4" />
+                                            <p className="text-slate-400 font-bold italic text-sm">No se encontraron registros que coincidan con los filtros</p>
+                                        </div>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredTickets.map(ticket => (
-                                    <tr key={ticket._id} className={`hover:bg-gray-50 transition-colors ${
-                                        selectedTickets.includes(ticket._id) ? 'bg-blue-50/50' : ''
-                                    } ${
-                                        getUrgency(ticket) === 'critical' ? 'border-l-4 border-red-500' :
-                                        getUrgency(ticket) === 'warning' ? 'border-l-4 border-yellow-400' : ''
-                                    }`}>
-                                        <td className="px-6 py-4">
+                            ) : (
+                                filteredTickets.map((ticket, idx) => (
+                                    <motion.tr 
+                                        key={ticket._id} 
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: idx * 0.03 }}
+                                        className={`hover:bg-blue-50/30 transition-all cursor-pointer group ${
+                                            selectedTickets.includes(ticket._id) ? 'bg-blue-50/50 shadow-inner' : ''
+                                        }`}
+                                    >
+                                        <td className="px-6 py-6" onClick={(e) => e.stopPropagation()}>
                                             {user?.rol === 'admin' && (
                                                 <input
                                                     type="checkbox"
-                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                                                    className="rounded-lg border-slate-300 text-blue-600 h-5 w-5 bg-white"
                                                     checked={selectedTickets.includes(ticket._id)}
                                                     onChange={() => handleSelectTicket(ticket._id)}
                                                 />
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="text-sm font-medium text-gray-900">{ticket?.titulo || 'Sin Título'}</div>
+                                        <td className="px-6 py-6" onClick={() => navigate(`/app/tickets/${ticket._id}`)}>
+                                            <div className="flex items-center gap-3 mb-1.5">
+                                                <div className="text-sm font-black text-slate-800 tracking-tight">{ticket.titulo}</div>
                                                 {getUrgency(ticket) === 'critical' && (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-red-100 text-red-700 animate-pulse">
-                                                        <Clock className="h-3 w-3" /> +48h
-                                                    </span>
-                                                )}
-                                                {getUrgency(ticket) === 'warning' && (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700">
-                                                        <Clock className="h-3 w-3" /> +24h
-                                                    </span>
+                                                    <span className="bg-red-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase animate-pulse">Retardado</span>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs text-gray-500 truncate max-w-[200px]">{ticket?.descripcion || 'Sin descripción'}</span>
-                                                <span className="text-xs font-bold text-gray-400">|</span>
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${ticket?.esPúblico ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                    {ticket?.esPúblico ? 'Solicitante' : 'Soporte'}
+                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest ${ticket?.esPúblico ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {ticket?.esPúblico ? 'Ciudadano' : 'Soporte'}
+                                                </span>
+                                                <span className="text-[10px] text-slate-400 font-bold italic truncate max-w-[200px]">
+                                                    {ticket?.esPúblico ? ticket?.nombreContacto : (ticket?.creadoPor?.nombre || 'Usuario')}
                                                 </span>
                                             </div>
-                                            <div className="text-[10px] text-gray-400 mt-1 italic">
-                                                De: {ticket?.esPúblico ? `${ticket?.nombreContacto || 'Anónimo'} (${ticket?.correoContacto || 'N/A'})` : (ticket?.creadoPor?.nombre || 'Usuario Desconocido')}
-                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full 
-                        ${ticket?.estado === 'abierto' ? 'bg-red-100 text-red-700' :
-                                                    ticket?.estado === 'en_progreso' ? 'bg-yellow-100 text-yellow-800' :
-                                                        'bg-green-100 text-green-700'}`}>
-                                                {(ticket?.estado || 'DESCONOCIDO').replace('_', ' ').toUpperCase()}
+                                        <td className="px-6 py-6">
+                                            <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-widest shadow-sm
+                                                ${ticket.estado === 'abierto' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                  ticket.estado === 'en_progreso' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                                  'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+                                                {ticket.estado.replace('_', ' ')}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 hidden md:table-cell">
-                                            <div className="text-sm text-gray-700 font-medium">{ticket?.dependencia || 'N/A'}</div>
-                                            {ticket?.seccion && <div className="text-xs text-gray-400">{ticket?.seccion}</div>}
+                                        <td className="px-6 py-6 hidden md:table-cell">
+                                            <div className="text-[11px] font-black text-slate-700 uppercase tracking-tighter">{ticket.dependencia || 'N/A'}</div>
+                                            <div className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{ticket.seccion || 'Sin Sección'}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {ticket?.fechaCreación ? new Date(ticket.fechaCreación).toLocaleDateString() : 'N/A'}
+                                        <td className="px-6 py-6 whitespace-nowrap text-xs font-bold text-slate-500">
+                                            {new Date(ticket.fechaCreación).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <Link to={`/app/tickets/${ticket._id}`} className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md transition-colors hover:bg-blue-100 font-semibold">
-                                                Ver detalles
-                                            </Link>
+                                        <td className="px-6 py-6 text-right border-l border-slate-50/50">
+                                            <div className="bg-slate-100 p-2 rounded-xl text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all inline-block">
+                                                <ChevronRight className="h-4 w-4" />
+                                            </div>
                                         </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                    </motion.tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             {/* Create Ticket Modal */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowModal(false)}></div>
-
-                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-                        <div className="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-100">
-                                <h3 className="text-lg leading-6 font-semibold text-gray-900" id="modal-title">
-                                    Crear Nuevo Ticket
+            <AnimatePresence>
+                {showModal && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-white rounded-3xl overflow-hidden shadow-2xl max-w-lg w-full border border-white"
+                        >
+                            <div className="px-8 py-6 bg-slate-50 border-b border-slate-100">
+                                <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center">
+                                    <div className="bg-blue-600 p-2 rounded-xl mr-3 shadow-lg shadow-blue-600/20 text-white">
+                                        <Plus className="h-5 w-5" />
+                                    </div>
+                                    Nueva Solicitud Municipal
                                 </h3>
                             </div>
-                            <form onSubmit={handleCreateTicket}>
-                                <div className="p-6 space-y-4 bg-gray-50">
+                            <form onSubmit={handleCreateTicket} className="p-8 space-y-5">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Asunto de la solicitud</label>
+                                    <input type="text" required value={titulo} onChange={e => setTitulo(e.target.value)} className="input-field" placeholder="Describa brevemente el problema" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Descripción técnica</label>
+                                    <textarea required value={descripcion} onChange={e => setDescripcion(e.target.value)} rows="3" className="input-field resize-none" placeholder="Proporcione todos los detalles necesarios..."></textarea>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Título del problema</label>
-                                        <input type="text" required value={titulo} onChange={e => setTitulo(e.target.value)} className="input-field" placeholder="Ej. No funciona la red" />
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Secretaría</label>
+                                        <select required value={dependencia} onChange={e => {setDependencia(e.target.value); setSeccion('');}} className="input-field">
+                                            <option value="">Seleccione...</option>
+                                            {Object.keys(ORGANIGRAM).map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                                        </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Descripción detallada</label>
-                                        <textarea required value={descripcion} onChange={e => setDescripcion(e.target.value)} rows="4" className="input-field resize-none" placeholder="Describe el problema que estás experimentando..."></textarea>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Dependencia (Secretaría)</label>
-                                            <select
-                                                required
-                                                value={dependencia}
-                                                onChange={e => {
-                                                    setDependencia(e.target.value);
-                                                    setSeccion(''); // Reset seccion when dependencia changes
-                                                }}
-                                                className="input-field"
-                                            >
-                                                <option value="">Seleccione Secretaría...</option>
-                                                {Object.keys(ORGANIGRAM).map(dep => (
-                                                    <option key={dep} value={dep}>{dep}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Sección / Oficina</label>
-                                            <select
-                                                value={seccion}
-                                                onChange={e => setSeccion(e.target.value)}
-                                                className="input-field"
-                                                disabled={!dependencia || ORGANIGRAM[dependencia].length === 0}
-                                            >
-                                                <option value="">{ORGANIGRAM[dependencia]?.length > 0 ? 'Seleccione Oficina...' : 'General'}</option>
-                                                {dependencia && ORGANIGRAM[dependencia].map(sec => (
-                                                    <option key={sec} value={sec}>{sec}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Adjuntar Archivo (Opcional)</label>
-                                        <input type="file" onChange={e => setFile(e.target.files[0])} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors cursor-pointer" />
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Oficina</label>
+                                        <select value={seccion} onChange={e => setSeccion(e.target.value)} className="input-field" disabled={!dependencia || ORGANIGRAM[dependencia].length === 0}>
+                                            <option value="">{ORGANIGRAM[dependencia]?.length > 0 ? 'Seleccione...' : 'General'}</option>
+                                            {dependencia && ORGANIGRAM[dependencia].map(sec => <option key={sec} value={sec}>{sec}</option>)}
+                                        </select>
                                     </div>
                                 </div>
-                                <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-100 bg-white">
-                                    <button type="submit" disabled={submitting} className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
-                                        {submitting ? 'Enviando...' : 'Crear Ticket'}
-                                    </button>
-                                    <button type="button" onClick={() => setShowModal(false)} className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Evidencia (Adjunto)</label>
+                                    <div className="relative group">
+                                        <input type="file" onChange={e => setFile(e.target.files[0])} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                        <div className="input-field flex items-center justify-between group-hover:bg-slate-50 transition-colors">
+                                            <span className="text-slate-400 truncate">{file ? file.name : 'Vincular documento o imagen...'}</span>
+                                            <Download className="h-4 w-4 text-blue-500" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 pt-4">
+                                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-800 transition-colors">
                                         Cancelar
+                                    </button>
+                                    <button type="submit" disabled={submitting} className="flex-1 btn-primary py-3">
+                                        {submitting ? 'Emitiendo...' : 'Crear Registro'}
                                     </button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Delete Multiple Modal */}
-            {showDeleteModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowDeleteModal(false)}></div>
-                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                        <div className="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-                            <div className="bg-white px-6 pt-6 pb-4">
-                                <div className="flex items-center mb-4 text-red-600">
-                                    <AlertTriangle className="h-6 w-6 mr-3" />
-                                    <h3 className="text-xl font-bold text-gray-900">¿Eliminar {selectedTickets.length} tickets?</h3>
-                                </div>
-                                <p className="text-sm text-gray-500 leading-relaxed">
-                                    Estás a punto de eliminar <b>{selectedTickets.length}</b> tickets de forma permanente. Esto también borrará todos los mensajes y archivos adjuntos asociados. Esta acción no se puede deshacer.
-                                </p>
+            <AnimatePresence>
+                {showDeleteModal && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-red-900/20 backdrop-blur-sm"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0.9 }}
+                            className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center"
+                        >
+                            <div className="bg-red-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-600">
+                                <AlertTriangle className="h-8 w-8" />
                             </div>
-                            <div className="px-6 py-4 bg-gray-50 flex flex-row-reverse gap-3">
+                            <h3 className="text-xl font-black text-slate-900 mb-2">Eliminar Definitivamente</h3>
+                            <p className="text-sm text-slate-500 font-bold leading-relaxed mb-8">
+                                Está a punto de borrar <span className="text-red-600 underline font-black">{selectedTickets.length}</span> solicitudes del sistema. Esta acción es irreversible y purgará todos los datos asociados.
+                            </p>
+                            <div className="flex flex-col gap-3">
                                 <button
                                     onClick={handleBulkDelete}
                                     disabled={submitting}
-                                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-bold shadow-md transition-all disabled:opacity-50"
+                                    className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-600/30 transition-all flex items-center justify-center"
                                 >
-                                    {submitting ? 'Eliminando...' : 'Eliminar Definivamente'}
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    {submitting ? 'Purgando...' : 'Confirmar Purgamiento'}
                                 </button>
                                 <button
                                     onClick={() => setShowDeleteModal(false)}
-                                    className="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-bold hover:bg-gray-50 transition-all"
+                                    className="w-full py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
                                 >
-                                    Cancelar
+                                    Mantener Registros
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 };
 
