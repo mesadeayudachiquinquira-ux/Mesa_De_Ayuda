@@ -13,10 +13,12 @@ const ticketSchema = new mongoose.Schema({
         type: String,
         enum: ['abierto', 'en_progreso', 'cerrado'],
         default: 'abierto',
+        index: true, // Índice para filtrado rápido por estado
     },
     dependencia: {
         type: String,
         required: true,
+        index: true, // Índice para filtrado por dependencia
     },
     seccion: {
         type: String,
@@ -25,7 +27,8 @@ const ticketSchema = new mongoose.Schema({
     creadoPor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: false, // Ahora es opcional para tickets públicos
+        required: false,
+        index: true, // Índice para buscar tickets por técnico
     },
     // Campos para usuarios externos (públicos)
     nombreContacto: {
@@ -43,10 +46,12 @@ const ticketSchema = new mongoose.Schema({
     asignadoA: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        index: true, // Índice para tickets asignados
     },
     fechaCreación: {
         type: Date,
         default: Date.now,
+        index: true, // Índice para ordenación por fecha
     },
     adjuntos: [{
         type: String,
@@ -54,10 +59,14 @@ const ticketSchema = new mongoose.Schema({
     esPúblico: {
         type: Boolean,
         default: false,
+        index: true,
     },
     codigoAcceso: {
         type: String,
-        required: false, // Solo para tickets públicos
+        required: false,
+        unique: true,
+        sparse: true, // Solo indexar los que tienen código (públicos)
+        index: true, 
     },
     comentarioResolucion: {
         type: String,

@@ -13,7 +13,7 @@ import {
     Trash2,
     Paperclip,
     Building2,
-    Layout
+    Layout as LayoutIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
@@ -34,6 +34,7 @@ const TicketDetail = () => {
     const [notifyCitizen, setNotifyCitizen] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [error, setError] = useState('');
 
     // Typing indicator
     const [otherPersonTyping, setOtherPersonTyping] = useState(false);
@@ -54,19 +55,23 @@ const TicketDetail = () => {
     useEffect(() => {
         const fetchTicketData = async () => {
             try {
-                const [ticketRes, messagesRes] = await Promise.all([
-                    api.get(`/tickets/${id}`),
-                    api.get(`/tickets/${id}/messages`)
-                ]);
-                setTicket(ticketRes.data);
-                setMessages(messagesRes.data);
-                setStatus(ticketRes.data.estado);
-                setComentarioResolucion(ticketRes.data.comentarioResolucion || '');
-                setAtendidoPorNombre(ticketRes.data.atendidoPorNombre || '');
+                // El endpoint /tickets/:id ahora devuelve { ticket, messages } en una sola llamada
+                const { data } = await api.get(`/tickets/${id}`);
+                
+                if (data && data.ticket) {
+                    setTicket(data.ticket);
+                    setMessages(data.messages || []);
+                    setStatus(data.ticket.estado);
+                    setComentarioResolucion(data.ticket.comentarioResolucion || '');
+                    setAtendidoPorNombre(data.ticket.atendidoPorNombre || '');
+                } else {
+                    setError('Estructura de datos inválida');
+                }
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching ticket data:', error);
                 setLoading(false);
+                setError('No se pudo cargar la información del ticket');
             }
         };
 
@@ -78,7 +83,7 @@ const TicketDetail = () => {
 
         const handleNewMessage = (message) => {
             setMessages(prev => [...prev, message]);
-            if (message.usuarioId !== user._id) {
+            if (message && message.usuarioId && user && message.usuarioId !== user._id) {
                 audioRef.current.play().catch(e => console.log('Audio error:', e));
             }
         };
@@ -103,7 +108,7 @@ const TicketDetail = () => {
         try {
             const { data } = await api.post(`/tickets/${id}/messages`, { 
                 mensaje: newMessage,
-                notificarCiudadano: notifyCitizen 
+                notificarSolicitante: notifyCitizen 
             });
             // Socket handles UI update via broadcast, no need to manually append here if server emits
             setNewMessage('');
@@ -183,7 +188,7 @@ const TicketDetail = () => {
                     </div>
                 </div>
 
-                {user.rol === 'admin' && (
+                {user && user.rol === 'admin' && (
                     <button 
                         onClick={() => setShowDeleteModal(true)}
                         className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-semibold transition-colors border border-red-200"
@@ -205,6 +210,12 @@ const TicketDetail = () => {
                                 Descripción del Problema
                             </h3>
                         </div>
+                        {error && (
+                            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-center gap-3">
+                                <AlertCircle className="h-5 w-5 text-red-500" />
+                                <p className="text-sm text-red-700 font-bold">{error}</p>
+                            </div>
+                        )}
                         <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{ticket.descripcion}</p>
 
                         {/* Resolution Comment Display */}

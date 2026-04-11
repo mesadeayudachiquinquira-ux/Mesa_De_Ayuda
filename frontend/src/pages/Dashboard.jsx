@@ -149,7 +149,7 @@ const Dashboard = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900 truncate max-w-xs">{ticket.titulo}</div>
                                                 <div className="text-[10px] text-gray-400 italic">
-                                                    {ticket.esPúblico ? `Ext: ${ticket.nombreContacto}` : `Int: ${ticket.creadoPor?.nombre || '...'}`}
+                                                    {ticket.esPúblico ? `Sol: ${ticket.nombreContacto}` : `Sop: ${ticket.creadoPor?.nombre || '...'}`}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">

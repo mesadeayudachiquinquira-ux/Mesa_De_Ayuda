@@ -22,15 +22,15 @@ const protect = async (req, res, next) => {
                 return res.status(401).json({ message: 'No autorizado, usuario no existe' });
             }
 
-            next();
+            return next();
         } catch (error) {
             console.error('Error en authMiddleware:', error.message);
-            res.status(401).json({ message: 'No autorizado, token fallido' });
+            return res.status(401).json({ message: 'No autorizado, token fallido' });
         }
     }
 
     if (!token) {
-        res.status(401).json({ message: 'No autorizado, no hay token' });
+        return res.status(401).json({ message: 'No autorizado, no hay token' });
     }
 };
 

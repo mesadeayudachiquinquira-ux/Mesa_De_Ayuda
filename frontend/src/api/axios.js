@@ -9,7 +9,7 @@ const api = axios.create({
     },
 });
 
-// Request interceptor to add the JWT token to headers
+// Interceptor de Peticion: Añadir Token JWT
 api.interceptors.request.use(
     (config) => {
         const user = localStorage.getItem('user');
@@ -21,7 +21,26 @@ api.interceptors.request.use(
         }
         return config;
     },
+    (error) => Promise.reject(error)
+);
+
+// Interceptor de Respuesta: Manejo Global de 401 (Auto-Logout)
+api.interceptors.response.use(
+    (response) => response,
     (error) => {
+        // Si el servidor responde con 401 (No Autorizado / Token Expirado)
+        if (error.response && error.response.status === 401) {
+            console.warn('Sesión expirada o inválida. Redirigiendo al login...');
+            
+            // Solo limpiar si no estamos en una página pública (seguimiento de PIN)
+            if (!window.location.pathname.includes('/public-tracking') && 
+                !window.location.pathname.includes('/public-ticket') && 
+                window.location.pathname !== '/') {
+                
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
+        }
         return Promise.reject(error);
     }
 );

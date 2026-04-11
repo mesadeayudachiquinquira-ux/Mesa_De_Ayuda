@@ -16,33 +16,41 @@ const generateTrackingCode = () => {
 // @desc    Obtener tickets del usuario u obtener todos si es admin
 // @route   GET /api/tickets
 // @access  Private
-const getTickets = async (req, res) => {
-    const tickets = await Ticket.find({}).populate('creadoPor', 'nombre email');
-    res.json(tickets);
+const getTickets = async (req, res, next) => {
+    try {
+        const tickets = await Ticket.find({}).populate('creadoPor', 'nombre email');
+        res.json(tickets);
+    } catch (error) {
+        next(error);
+    }
 };
 
 // @desc    Obtener ticket por ID
 // @route   GET /api/tickets/:id
 // @access  Private
-const getTicketById = async (req, res) => {
-    const ticket = await Ticket.findById(req.params.id)
-        .populate('creadoPor', 'nombre email')
-        .populate('asignadoA', 'nombre');
-
-    if (ticket) {
-        // Traer los mensajes del ticket, poblando solo si el usuario existe (para evitar errores con tickets públicos/anónimos)
-        const messages = await Message.find({ ticketId: req.params.id }).populate('usuarioId', 'nombre rol');
-
-        res.json({ ticket, messages });
-    } else {
-        res.status(404).json({ message: 'Ticket no encontrado' });
+const getTicketById = async (req, res, next) => {
+    try {
+        const ticket = await Ticket.findById(req.params.id)
+            .populate('creadoPor', 'nombre email')
+            .populate('asignadoA', 'nombre');
+    
+        if (ticket) {
+            // Traer los mensajes del ticket, poblando solo si el usuario existe (para evitar errores con tickets públicos/anónimos)
+            const messages = await Message.find({ ticketId: req.params.id }).populate('usuarioId', 'nombre rol');
+    
+            res.json({ ticket, messages });
+        } else {
+            res.status(404).json({ message: 'Ticket no encontrado' });
+        }
+    } catch (error) {
+        next(error);
     }
 };
 
 // @desc    Verificar un código PIN de oficina
 // @route   POST /api/tickets/verify-pin
 // @access  Public
-const verifyPin = async (req, res) => {
+const verifyPin = async (req, res, next) => {
     try {
         const { code } = req.body;
 
@@ -61,19 +69,18 @@ const verifyPin = async (req, res) => {
             seccion: accessCode.seccion
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error al verificar el PIN' });
+        next(error);
     }
 };
 
 // @desc    Crear nuevo ticket
 // @route   POST /api/tickets
 // @access  Private
-const createTicket = async (req, res) => {
+const createTicket = async (req, res, next) => {
     try {
         const { titulo, descripcion, dependencia, seccion } = req.body;
 
         // Archivo adjunto (si lo hay)
-        // Subir archivo adjunto a Cloudinary si lo hay
         let adjuntoPath = null;
         if (req.file) {
             try {
@@ -104,17 +111,15 @@ const createTicket = async (req, res) => {
 
         res.status(201).json(ticket);
     } catch (error) {
-        console.error('Error al crear ticket:', error);
-        res.status(500).json({ message: 'Error interno del servidor al crear el ticket' });
+        next(error);
     }
 };
 
 // @desc    Crear ticket público (sin login)
 // @route   POST /api/tickets/public
 // @access  Public
-const createPublicTicket = async (req, res) => {
+const createPublicTicket = async (req, res, next) => {
     try {
-        console.log('Recibida petición de ticket público:', req.body);
         const { titulo, descripcion, pin, nombreContacto, correoContacto, telefonoContacto } = req.body;
 
         if (!titulo || !descripcion || !pin) {
@@ -192,149 +197,152 @@ const createPublicTicket = async (req, res) => {
             console.error('Error al crear notificaciones para soporte:', err);
         }
     } catch (error) {
-        console.error('Error al crear ticket público:', error);
-        res.status(500).json({ message: 'Error interno del servidor al crear el ticket' });
+        next(error);
     }
 };
 
 // @desc    Actualizar Ticket (Admin)
 // @route   PUT /api/tickets/:id
 // @access  Private/Admin
-const updateTicket = async (req, res) => {
-    const { estado, asignadoA, comentarioResolucion, atendidoPorNombre } = req.body;
+const updateTicket = async (req, res, next) => {
+    try {
+        const { estado, asignadoA, comentarioResolucion, atendidoPorNombre } = req.body;
 
-    const ticket = await Ticket.findById(req.params.id);
+        const ticket = await Ticket.findById(req.params.id);
 
-    if (ticket) {
-        ticket.estado = estado || ticket.estado;
-        if (asignadoA) {
-            ticket.asignadoA = asignadoA;
-        }
-        if (comentarioResolucion) {
-            ticket.comentarioResolucion = comentarioResolucion;
-        }
-        if (atendidoPorNombre) {
-            ticket.atendidoPorNombre = atendidoPorNombre;
-        }
-
-        const updatedTicket = await ticket.save();
-        
-        const io = req.app.get('io');
-        if (io) {
-            io.emit('ticketsChanged');
-        }
-
-        res.json(updatedTicket);
-
-        // Correo de resolución al solicitante si se cierra un ticket
-        if (estado === 'cerrado' && ticket.esPúblico && ticket.correoContacto) {
-            sendMailToCitizen(ticket.correoContacto, 'resolucion', {
-                nombre: ticket.nombreContacto,
-                titulo: ticket.titulo,
-                codigoAcceso: ticket.codigoAcceso,
-                resolucion: comentarioResolucion || ticket.comentarioResolucion || 'Sin detalles adicionales.',
-                atendidoPor: atendidoPorNombre || ticket.atendidoPorNombre
-            }).catch(err => console.error('Error enviando resolución al solicitante:', err));
-        }
-
-        // Notificar al creador del ticket sobre el cambio de estado
-        try {
-            if (ticket.creadoPor && estado) {
-                await Notification.create({
-                    usuarioId: ticket.creadoPor,
-                    mensaje: `Tu ticket "${ticket.titulo}" ahora está: ${(estado || '').replace('_', ' ')}`,
-                    tipo: 'estado_cambiado',
-                    link: `/app/tickets/${ticket._id}`
-                });
+        if (ticket) {
+            ticket.estado = estado || ticket.estado;
+            if (asignadoA) {
+                ticket.asignadoA = asignadoA;
             }
-        } catch (err) {
-            console.error('Error al notificar cambio de estado:', err);
-        }
-    } else {
-        res.status(404).json({ message: 'Ticket no encontrado' });
-    }
-};
+            if (comentarioResolucion) {
+                ticket.comentarioResolucion = comentarioResolucion;
+            }
+            if (atendidoPorNombre) {
+                ticket.atendidoPorNombre = atendidoPorNombre;
+            }
 
-// @desc    Agregar un mensaje al ticket (chat interno)
-// @route   POST /api/tickets/:id/mensajes
-// @access  Private
-const addMessage = async (req, res) => {
-    const { mensaje, notificarCiudadano } = req.body;
+            const updatedTicket = await ticket.save();
+            
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('ticketsChanged');
+            }
 
-    if (!mensaje) {
-        return res.status(400).json({ message: 'Mensaje vacío' });
-    }
+            res.json(updatedTicket);
 
-    const ticket = await Ticket.findById(req.params.id);
+            // Correo de resolución al solicitante si se cierra un ticket
+            if (estado === 'cerrado' && ticket.esPúblico && ticket.correoContacto) {
+                sendMailToCitizen(ticket.correoContacto, 'resolucion', {
+                    nombre: ticket.nombreContacto,
+                    titulo: ticket.titulo,
+                    codigoAcceso: ticket.codigoAcceso,
+                    resolucion: comentarioResolucion || ticket.comentarioResolucion || 'Sin detalles adicionales.',
+                    atendidoPor: atendidoPorNombre || ticket.atendidoPorNombre
+                }).catch(err => console.error('Error enviando resolución al solicitante:', err));
+            }
 
-    if (ticket) {
-        const newMessage = await Message.create({
-            ticketId: req.params.id,
-            usuarioId: req.user._id,
-            mensaje,
-        });
-
-        // Poblar el usuario para que el frontend reciba el nombre y rol instantáneamente
-        const populatedMessage = await Message.findById(newMessage._id).populate('usuarioId', 'nombre rol');
-
-        // Emitir mensaje por WebSockets
-        const io = req.app.get('io');
-        if (io) {
-            io.to(req.params.id).emit('newMessage', populatedMessage);
-        }
-
-        res.status(201).json(populatedMessage);
-
-        // Si soporte marcó "Notificar al solicitante", enviar correo de mensaje directo
-        if (notificarCiudadano && ticket.esPúblico && ticket.correoContacto) {
-            sendMailToCitizen(ticket.correoContacto, 'mensaje', {
-                nombre: ticket.nombreContacto,
-                titulo: ticket.titulo,
-                codigoAcceso: ticket.codigoAcceso,
-                mensaje
-            }).catch(err => console.error('Error enviando mensaje directo al solicitante:', err));
-        }
-
-        // Notificar a los correspondientes
-        try {
-            // Si el ticket es de soporte y quien escribe NO es su creador, notificar al creador
-            if (ticket.creadoPor && req.user._id.toString() !== ticket.creadoPor.toString()) {
-                await Notification.create({
-                    usuarioId: ticket.creadoPor,
-                    mensaje: `Soporte ha respondido a su solicitud: ${ticket.titulo}`,
-                    tipo: 'nuevo_mensaje',
-                    link: `/app/tickets/${ticket._id}`
-                });
-            } else {
-                // Si quien escribe es el creador del ticket o es un solicitante, notificar a soporte
-                const usersToNotify = ticket.asignadoA ? [ticket.asignadoA] : (await User.find({ rol: 'admin' })).map(u => u._id);
-                for (const userId of usersToNotify) {
+            // Notificar al creador del ticket sobre el cambio de estado
+            try {
+                if (ticket.creadoPor && estado) {
                     await Notification.create({
-                        usuarioId: userId,
-                        mensaje: `Nuevo mensaje de ${req.user.nombre} en: ${ticket.titulo}`,
-                        tipo: 'nuevo_mensaje',
+                        usuarioId: ticket.creadoPor,
+                        mensaje: `Tu ticket "${ticket.titulo}" ahora está: ${(estado || '').replace('_', ' ')}`,
+                        tipo: 'estado_cambiado',
                         link: `/app/tickets/${ticket._id}`
                     });
                 }
+            } catch (err) {
+                console.error('Error al notificar cambio de estado:', err);
             }
-        } catch (err) {
-            console.error('Error al notificar mensaje de soporte:', err);
+        } else {
+            res.status(404).json({ message: 'Ticket no encontrado' });
         }
-    } else {
-        res.status(404).json({ message: 'Ticket no encontrado' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Agregar un mensaje al ticket (chat)
+// @route   POST /api/tickets/:id/messages
+// @access  Private
+const addMessage = async (req, res, next) => {
+    try {
+        const { mensaje, notificarSolicitante } = req.body;
+
+        if (!mensaje) {
+            return res.status(400).json({ message: 'Mensaje vacío' });
+        }
+
+        const ticket = await Ticket.findById(req.params.id);
+
+        if (ticket) {
+            const newMessage = await Message.create({
+                ticketId: req.params.id,
+                usuarioId: req.user._id,
+                mensaje,
+            });
+
+            // Poblar el usuario para que el frontend reciba el nombre y rol instantáneamente
+            const populatedMessage = await Message.findById(newMessage._id).populate('usuarioId', 'nombre rol');
+
+            // Emitir mensaje por WebSockets
+            const io = req.app.get('io');
+            if (io) {
+                io.to(req.params.id).emit('newMessage', populatedMessage);
+            }
+
+            res.status(201).json(populatedMessage);
+
+            // Si soporte marcó "Notificar al solicitante", enviar correo de mensaje directo
+            if (notificarSolicitante && ticket.esPúblico && ticket.correoContacto) {
+                sendMailToCitizen(ticket.correoContacto, 'mensaje', {
+                    nombre: ticket.nombreContacto,
+                    titulo: ticket.titulo,
+                    codigoAcceso: ticket.codigoAcceso,
+                    mensaje
+                }).catch(err => console.error('Error enviando mensaje directo al solicitante:', err));
+            }
+
+            // Notificar a los correspondientes
+            try {
+                // Si el ticket es de soporte y quien escribe NO es su creador, notificar al creador
+                if (ticket.creadoPor && req.user._id.toString() !== ticket.creadoPor.toString()) {
+                    await Notification.create({
+                        usuarioId: ticket.creadoPor,
+                        mensaje: `Soporte ha respondido a su solicitud: ${ticket.titulo}`,
+                        tipo: 'nuevo_mensaje',
+                        link: `/app/tickets/${ticket._id}`
+                    });
+                } else {
+                    // Si quien escribe es el creador del ticket o es un solicitante, notificar a soporte
+                    const usersToNotify = ticket.asignadoA ? [ticket.asignadoA] : (await User.find({ rol: 'admin' })).map(u => u._id);
+                    for (const userId of usersToNotify) {
+                        await Notification.create({
+                            usuarioId: userId,
+                            mensaje: `Nuevo mensaje de ${req.user.nombre} en: ${ticket.titulo}`,
+                            tipo: 'nuevo_mensaje',
+                            link: `/app/tickets/${ticket._id}`
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Error al notificar mensaje de soporte:', err);
+            }
+        } else {
+            res.status(404).json({ message: 'Ticket no encontrado' });
+        }
+    } catch (error) {
+        next(error);
     }
 };
 
 // @desc    Obtener ticket público solo por código de acceso
 // @route   GET /api/tickets/public/track/:codigo
 // @access  Public
-const getTicketPublicByCode = async (req, res) => {
+const getTicketPublicByCode = async (req, res, next) => {
     try {
         const { codigo } = req.params;
-
-        if (!Ticket) {
-            throw new Error('Modelo Ticket no cargado');
-        }
 
         const ticket = await Ticket.findOne({ codigoAcceso: codigo });
 
@@ -342,21 +350,18 @@ const getTicketPublicByCode = async (req, res) => {
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
         }
 
-        console.log('[DEBUG-TRACK] Ticket encontrado ID:', ticket._id);
-
         const messages = await Message.find({ ticketId: ticket._id }).populate('usuarioId', 'nombre rol');
         
         res.json({ ticket, messages });
     } catch (error) {
-        console.error('Error en getTicketPublicByCode:', error);
-        res.status(500).json({ message: 'Error al buscar el ticket' });
+        next(error);
     }
 };
 
 // @desc    Agregar mensaje público (desde el tracking)
 // @route   POST /api/tickets/public/:id/mensajes
 // @access  Public
-const addPublicMessage = async (req, res) => {
+const addPublicMessage = async (req, res, next) => {
     try {
         const { mensaje, codigo } = req.body;
         const { id } = req.params;
@@ -366,22 +371,18 @@ const addPublicMessage = async (req, res) => {
         }
 
         let ticket;
-        if (id && id !== 'undefined') {
+        if (id && id !== 'undefined' && id.length === 24) {
             ticket = await Ticket.findById(id);
         } else {
             ticket = await Ticket.findOne({ codigoAcceso: codigo });
         }
 
-        if (!ticket) {
-            return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
-        }
-
-        if (ticket.codigoAcceso !== codigo) {
+        if (!ticket || ticket.codigoAcceso !== codigo) {
             return res.status(404).json({ message: 'Ticket no encontrado o código inválido' });
         }
 
         if (ticket.estado === 'cerrado') {
-            return res.status(400).json({ message: 'El ticket está cerrado' });
+            return res.status(400).json({ message: 'La solicitud está cerrada' });
         }
 
         const newMessage = await Message.create({
@@ -414,25 +415,21 @@ const addPublicMessage = async (req, res) => {
             const assignedUsers = await User.find({ _id: { $in: usersToNotify } });
             const userEmails = assignedUsers.map(u => u.email);
             if (userEmails.length > 0) {
-                const mailText = `Hola,\n\nEl solicitante ha agregado un nuevo mensaje respondiendo a la solicitud.\n\nTicker: ${ticket.titulo}\nMensaje: "${mensaje}"\n\nIngresa al panel de soporte para responder.`;
+                const mailText = `Hola,\n\nEl solicitante ha agregado un nuevo mensaje respondiendo a la solicitud.\n\nTítulo: ${ticket.titulo}\nMensaje: "${mensaje}"\n\nIngresa al panel de soporte para responder.`;
                 await sendMailToInternalUsers(userEmails, `Nuevo mensaje en Solicitud: ${ticket.titulo}`, mailText);
             }
         } catch (err) {
             console.error('Error al notificar nuevo mensaje:', err);
         }
     } catch (error) {
-        console.error('Error en addPublicMessage:', error);
-        res.status(500).json({
-            message: 'Error al enviar el mensaje',
-            details: error.message
-        });
+        next(error);
     }
 };
 
 // @desc    Borrar ticket y sus mensajes
 // @route   DELETE /api/tickets/:id
 // @access  Private/Admin
-const deleteTicket = async (req, res) => {
+const deleteTicket = async (req, res, next) => {
     try {
         const ticket = await Ticket.findById(req.params.id);
 
@@ -453,15 +450,14 @@ const deleteTicket = async (req, res) => {
 
         res.json({ message: 'Ticket y mensajes eliminados correctamente' });
     } catch (error) {
-        console.error('Error al borrar ticket:', error);
-        res.status(500).json({ message: 'Error al eliminar el ticket' });
+        next(error);
     }
 };
 
 // @desc    Borrar múltiples tickets y sus mensajes
 // @route   DELETE /api/tickets/bulk
 // @access  Private/Admin
-const deleteMultipleTickets = async (req, res) => {
+const deleteMultipleTickets = async (req, res, next) => {
     try {
         const { ids } = req.body;
 
@@ -482,8 +478,7 @@ const deleteMultipleTickets = async (req, res) => {
 
         res.json({ message: `${ids.length} tickets y sus mensajes eliminados correctamente` });
     } catch (error) {
-        console.error('Error al borrar múltiples tickets:', error);
-        res.status(500).json({ message: 'Error al eliminar los tickets seleccionados' });
+        next(error);
     }
 };
 

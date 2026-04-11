@@ -7,6 +7,7 @@ const connectDB = require('./config/db');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
+const { errorHandler } = require('./middleware/errorMiddleware');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -84,15 +85,22 @@ app.get('/api/diag', async (req, res) => {
         const state = mongoose.connection.readyState;
         const Ticket = mongoose.model('Ticket');
         const count = await Ticket.countDocuments();
-        res.json({ 
+        
+        // No mostrar NODE_ENV en producción por seguridad
+        const info = {
             status: 'ok', 
             dbState: state, 
             ticketCount: count,
-            nodeEnv: process.env.NODE_ENV,
             timestamp: new Date().toISOString()
-        });
+        };
+
+        if (process.env.NODE_ENV !== 'production') {
+            info.nodeEnv = process.env.NODE_ENV;
+        }
+
+        res.json(info);
     } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
+        res.status(500).json({ status: 'error', message: 'Error en diagnóstico' });
     }
 });
 
@@ -104,11 +112,14 @@ if (process.env.NODE_ENV === 'production') {
         res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
     });
 } else {
-// Ruta base para comprobación en desarrollo
-app.get('/test-server', (req, res) => {
-    res.send('API de Mesa de Ayuda funcionando...');
-});
+    // Ruta base para comprobación en desarrollo
+    app.get('/test-server', (req, res) => {
+        res.send('API de Mesa de Ayuda funcionando...');
+    });
 }
+
+// Manejador de Errores Global (Debe ir después de las rutas)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
