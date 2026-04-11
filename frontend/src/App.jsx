@@ -13,6 +13,7 @@ import Offices from './pages/Offices';
 import PublicTicket from './pages/PublicTicket';
 import PublicTracking from './pages/PublicTracking';
 import Home from './pages/Home';
+import ForgotPassword from './pages/ForgotPassword';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/public-ticket" element={<PublicTicket />} />
           <Route path="/public-tracking/:codigo?" element={<PublicTracking />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/register" element={<Register />} />
 
           {/* Protected Area */}

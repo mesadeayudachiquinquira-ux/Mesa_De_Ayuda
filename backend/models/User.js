@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
 }, { collection: 'users' });
 
 // Hook para encriptar la contraseña antes de guardar
