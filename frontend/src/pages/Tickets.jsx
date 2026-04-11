@@ -163,23 +163,27 @@ const Tickets = () => {
 
     // ─── Exportar a Excel (CSV) ────────────────────────────────────────
     const handleExportCSV = () => {
-        const rows = [
-            ['ID', 'Título', 'Estado', 'Tipo', 'Solicitante', 'Correo', 'Dependencia', 'Sección', 'Fecha Creación', 'Resuelto por'],
-            ...filteredTickets.map(t => [
-                t._id,
-                t.titulo || '',
-                (t.estado || '').replace('_', ' '),
-                t.esPúblico ? 'Externo' : 'Interno',
-                t.esPúblico ? (t.nombreContacto || '') : (t.creadoPor?.nombre || ''),
-                t.correoContacto || t.creadoPor?.email || '',
-                t.dependencia || '',
-                t.seccion || '',
-                t.fechaCreación ? new Date(t.fechaCreación).toLocaleString() : '',
-                t.atendidoPorNombre || ''
-            ])
-        ];
-        const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const headers = ['ID', 'Título', 'Estado', 'Tipo', 'Solicitante', 'Correo', 'Dependencia', 'Sección', 'Fecha Creación', 'Resuelto por'];
+        const rows = filteredTickets.map(t => [
+            t._id,
+            t.titulo || '',
+            (t.estado || '').replace('_', ' ').toUpperCase(),
+            t.esPúblico ? 'Solicitante' : 'Soporte',
+            t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Interno'),
+            t.correoContacto || t.creadoPor?.email || '',
+            t.dependencia || '',
+            t.seccion || '',
+            t.fechaCreación ? new Date(t.fechaCreación).toLocaleString() : '',
+            t.atendidoPorNombre || ''
+        ]);
+
+        // Usar punto y coma (;) para compatibilidad con Excel en español
+        // Incluir 'sep=;' para que Excel auto-detecte el separador
+        const csvContent = 'sep=;\n' + [headers, ...rows].map(r => 
+            r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')
+        ).join('\n');
+
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
