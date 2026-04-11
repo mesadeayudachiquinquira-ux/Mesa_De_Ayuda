@@ -515,42 +515,55 @@ const exportTicketsExcel = async (req, res, next) => {
         workbook.lastModifiedBy = 'Admin';
         workbook.created = new Date();
 
-        // --- HOJA 1: LISTADO COMPLETO ---
-        const sheet = workbook.addWorksheet('Reporte de Tickets');
+        // --- HOJA 1: LISTADO DETALLADO ---
+        const sheet = workbook.addWorksheet('Bitácora Detallada');
+        sheet.views = [{ state: 'frozen', ySplit: 1 }]; // Congelar encabezado
 
         sheet.columns = [
-            { header: 'ID', key: '_id', width: 25 },
-            { header: 'Título', key: 'titulo', width: 30 },
-            { header: 'Estado', key: 'estado', width: 15 },
-            { header: 'Categoría', key: 'categoria', width: 25 },
-            { header: 'Solicitante', key: 'solicitante', width: 25 },
-            { header: 'Dependencia', key: 'dependencia', width: 25 },
-            { header: 'Sección', key: 'seccion', width: 20 },
-            { header: 'Fecha Creación', key: 'fecha', width: 20 },
-            { header: 'Atendido Por', key: 'atendidoPor', width: 25 },
+            { header: 'CÓDIGO ID', key: '_id', width: 25 },
+            { header: 'ASUNTO / TÍTULO', key: 'titulo', width: 35 },
+            { header: 'CATEGORÍA TÉCNICA', key: 'categoria', width: 25 },
+            { header: 'SOLICITANTE', key: 'solicitante', width: 30 },
+            { header: 'DEPENDENCIA', key: 'dependencia', width: 30 },
+            { header: 'ÁREA / SECCIÓN', key: 'seccion', width: 25 },
+            { header: 'FECHA REGISTRO', key: 'fecha', width: 22 },
+            { header: 'TÉCNICO ASIGNADO', key: 'atendidoPor', width: 25 },
         ];
 
-        // Formato de cabecera
-        sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        sheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF2563EB' } // Azul primario
-        };
+        // Estilo de Cabecera Listado
+        const headerRow = sheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
 
-        tickets.forEach(t => {
-            sheet.addRow({
+        // Agregar filas con estilo cebra
+        tickets.forEach((t, index) => {
+            const row = sheet.addRow({
                 _id: t._id.toString(),
                 titulo: t.titulo,
-                estado: (t.estado || '').replace('_', ' ').toUpperCase(),
-                categoria: t.categoria || 'Sin Clasificar',
-                solicitante: t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Interno'),
+                categoria: t.categoria || 'POR CLASIFICAR',
+                solicitante: t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Funcionario Interno'),
                 dependencia: t.dependencia,
                 seccion: t.seccion || 'N/A',
                 fecha: new Date(t.fechaCreación).toLocaleString(),
-                atendidoPor: t.atendidoPorNombre || 'No Registrado'
+                atendidoPor: t.atendidoPorNombre || 'Pendiente / No asig.'
+            });
+
+            // Zebra styling
+            if (index % 2 !== 0) {
+                row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+            }
+            row.eachCell(c => {
+                c.border = { 
+                    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+                    right: { style: 'thin', color: { argb: 'FFF3F4F6' } }
+                };
             });
         });
+
+        // Auto-filtro para el listado
+        sheet.autoFilter = { from: 'A1', to: 'H1' };
 
         const statsSheet = workbook.addWorksheet('Resumen de Gestión');
         
@@ -632,55 +645,7 @@ const exportTicketsExcel = async (req, res, next) => {
         statsSheet.getColumn(2).width = 25;
         statsSheet.getColumn(2).alignment = { horizontal: 'center' };
 
-        // --- HOJA 2: LISTADO DETALLADO ---
-        const sheet = workbook.addWorksheet('Bitácora Detallada');
-        sheet.views = [{ state: 'frozen', ySplit: 1 }]; // Congelar encabezado
-
-        sheet.columns = [
-            { header: 'CÓDIGO ID', key: '_id', width: 25 },
-            { header: 'ASUNTO / TÍTULO', key: 'titulo', width: 35 },
-            { header: 'CATEGORÍA TÉCNICA', key: 'categoria', width: 25 },
-            { header: 'SOLICITANTE', key: 'solicitante', width: 30 },
-            { header: 'DEPENDENCIA', key: 'dependencia', width: 30 },
-            { header: 'ÁREA / SECCIÓN', key: 'seccion', width: 25 },
-            { header: 'FECHA REGISTRO', key: 'fecha', width: 22 },
-            { header: 'TÉCNICO ASIGNADO', key: 'atendidoPor', width: 25 },
-        ];
-
-        // Estilo de Cabecera Listado
-        const headerRow = sheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-
-        // Agregar filas con estilo cebra
-        tickets.forEach((t, index) => {
-            const row = sheet.addRow({
-                _id: t._id.toString(),
-                titulo: t.titulo,
-                categoria: t.categoria || 'POR CLASIFICAR',
-                solicitante: t.esPúblico ? (t.nombreContacto || 'Anónimo') : (t.creadoPor?.nombre || 'Funcionario Interno'),
-                dependencia: t.dependencia,
-                seccion: t.seccion || 'N/A',
-                fecha: new Date(t.fechaCreación).toLocaleString(),
-                atendidoPor: t.atendidoPorNombre || 'Pendiente / No asig.'
-            });
-
-            // Zebra styling
-            if (index % 2 !== 0) {
-                row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
-            }
-            row.eachCell(c => {
-                c.border = { 
-                    bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-                    right: { style: 'thin', color: { argb: 'FFF3F4F6' } }
-                };
-            });
-        });
-
-        // Auto-filtro para el listado
-        sheet.autoFilter = { from: 'A1', to: 'H1' };
+        // Ya configurado arriba
 
         // Configurar respuesta del archivo
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
