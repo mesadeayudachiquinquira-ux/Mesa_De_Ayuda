@@ -38,6 +38,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Indicador de "está escribiendo..."
+    socket.on('typing', ({ ticketId, role }) => {
+        socket.to(ticketId).emit('userTyping', { role });
+    });
+
+    socket.on('stopTyping', (ticketId) => {
+        socket.to(ticketId).emit('userStopTyping');
+    });
+
     socket.on('disconnect', () => {
         if (process.env.NODE_ENV !== 'production') {
             console.log('Cliente desconectado:', socket.id);

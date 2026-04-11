@@ -36,6 +36,10 @@ const TicketDetail = () => {
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+    // Typing indicator
+    const [otherPersonTyping, setOtherPersonTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
+
     // Ref for auto-scrolling to newest message
     const messagesEndRef = useRef(null);
     const audioRef = useRef(new Audio('/sounds/notification.mp3'));
@@ -67,9 +71,13 @@ const TicketDetail = () => {
         };
 
         socket.on('newMessage', handleNewMessage);
+        socket.on('userTyping', () => setOtherPersonTyping(true));
+        socket.on('userStopTyping', () => setOtherPersonTyping(false));
 
         return () => {
             socket.off('newMessage', handleNewMessage);
+            socket.off('userTyping');
+            socket.off('userStopTyping');
             socket.disconnect();
         };
     }, [id]);
@@ -286,6 +294,17 @@ const TicketDetail = () => {
                             </div>
 
                             <div className="flex-1 overflow-y-auto pr-4 space-y-6">
+                                {/* Indicador de "está escribiendo" */}
+                                {otherPersonTyping && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-gray-100 rounded-2xl rounded-tl-none px-5 py-3 flex items-center gap-2 shadow-sm">
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
+                                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
+                                            <span className="text-xs text-gray-400 ml-1">El ciudadano está escribiendo...</span>
+                                        </div>
+                                    </div>
+                                )}
                                 {messages.length === 0 ? (
                                     <div className="h-full flex items-center justify-center text-gray-400 italic">
                                         No hay mensajes aún. Comienza la conversación abajo.
@@ -337,7 +356,15 @@ const TicketDetail = () => {
                                         <input
                                             type="text"
                                             value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            onChange={(e) => {
+                                                setNewMessage(e.target.value);
+                                                // Emitir typing
+                                                socket.emit('typing', { ticketId: id, role: 'admin' });
+                                                clearTimeout(typingTimeoutRef.current);
+                                                typingTimeoutRef.current = setTimeout(() => {
+                                                    socket.emit('stopTyping', id);
+                                                }, 2000);
+                                            }}
                                             placeholder="Escribe un mensaje al usuario externo..."
                                             className="input-field flex-1"
                                         />

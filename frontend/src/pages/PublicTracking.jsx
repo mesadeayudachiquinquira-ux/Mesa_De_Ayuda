@@ -34,6 +34,8 @@ const PublicTracking = () => {
     const audioRef = useRef(new Audio('/sounds/notification.mp3'));
     const prevMessagesLength = useRef(0);
     const firstLoad = useRef(true);
+    const typingTimeoutRef = useRef(null);
+    const [otherPersonTyping, setOtherPersonTyping] = useState(false);
 
 
     // Verificación automática basada en la URL o carga inicial
@@ -58,9 +60,13 @@ const PublicTracking = () => {
         };
 
         socket.on('newMessage', handleNewMessage);
+        socket.on('userTyping', () => setOtherPersonTyping(true));
+        socket.on('userStopTyping', () => setOtherPersonTyping(false));
 
         return () => {
             socket.off('newMessage', handleNewMessage);
+            socket.off('userTyping');
+            socket.off('userStopTyping');
             socket.disconnect();
         };
     }, [ticket?._id, accessCode]);
@@ -271,6 +277,17 @@ const PublicTracking = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
+                            {/* Typing indicator */}
+                            {otherPersonTyping && (
+                                <div className="flex justify-start">
+                                    <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 flex items-center gap-2 shadow-sm">
+                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'0ms'}}></span>
+                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'150ms'}}></span>
+                                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay:'300ms'}}></span>
+                                        <span className="text-xs text-blue-500 ml-1 font-semibold">Soporte está escribiendo...</span>
+                                    </div>
+                                </div>
+                            )}
                             {messages.map((msg) => {
                                 const isAdmin = msg.usuarioId?.rol === 'admin';
                                 const isOwn = !msg.usuarioId; // Anonymous messages have no user
@@ -300,7 +317,14 @@ const PublicTracking = () => {
                                     <input
                                         type="text"
                                         value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        onChange={(e) => {
+                                            setNewMessage(e.target.value);
+                                            socket.emit('typing', { ticketId: ticket._id, role: 'ciudadano' });
+                                            clearTimeout(typingTimeoutRef.current);
+                                            typingTimeoutRef.current = setTimeout(() => {
+                                                socket.emit('stopTyping', ticket._id);
+                                            }, 2000);
+                                        }}
                                         placeholder="Escribe un mensaje..."
                                         className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm shadow-sm"
                                     />

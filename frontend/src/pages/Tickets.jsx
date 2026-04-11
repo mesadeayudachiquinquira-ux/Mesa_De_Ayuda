@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import { Plus, Search, Filter, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, AlertTriangle, Download, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { socket } from '../socket';
 
@@ -136,6 +136,16 @@ const Tickets = () => {
         }
     };
 
+    // ─── Semáforo de urgencia ──────────────────────────────────────────
+    const getUrgency = (ticket) => {
+        if (ticket?.estado === 'cerrado') return null;
+        const created = new Date(ticket?.fechaCreación);
+        const hoursElapsed = (Date.now() - created) / (1000 * 60 * 60);
+        if (hoursElapsed >= 48) return 'critical';  // +48h → rojo
+        if (hoursElapsed >= 24) return 'warning';   // +24h → amarillo
+        return null;
+    };
+
     const activeTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado !== 'cerrado') : [];
     const closedTickets = Array.isArray(tickets) ? tickets.filter(t => t?.estado === 'cerrado') : [];
 
@@ -150,6 +160,34 @@ const Tickets = () => {
     const topResponsables = Object.entries(statsResponsables)
         .map(([nombre, count]) => ({ nombre, count }))
         .sort((a, b) => b.count - a.count);
+
+    // ─── Exportar a Excel (CSV) ────────────────────────────────────────
+    const handleExportCSV = () => {
+        const rows = [
+            ['ID', 'Título', 'Estado', 'Tipo', 'Solicitante', 'Correo', 'Dependencia', 'Sección', 'Fecha Creación', 'Resuelto por'],
+            ...filteredTickets.map(t => [
+                t._id,
+                t.titulo || '',
+                (t.estado || '').replace('_', ' '),
+                t.esPúblico ? 'Externo' : 'Interno',
+                t.esPúblico ? (t.nombreContacto || '') : (t.creadoPor?.nombre || ''),
+                t.correoContacto || t.creadoPor?.email || '',
+                t.dependencia || '',
+                t.seccion || '',
+                t.fechaCreación ? new Date(t.fechaCreación).toLocaleString() : '',
+                t.atendidoPorNombre || ''
+            ])
+        ];
+        const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const tab = filterStatus === 'active' ? 'activos' : 'cerrados';
+        link.download = `tickets_${tab}_${new Date().toISOString().slice(0,10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
 
     const filteredTickets = (filterStatus === 'active' ? activeTickets : closedTickets).filter(t => {
         try {
@@ -202,13 +240,24 @@ const Tickets = () => {
                     <p className="text-gray-500 mt-1">Lista completa y estado de todos los requerimientos.</p>
                 </div>
 
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="btn-primary inline-flex items-center justify-center whitespace-nowrap px-6"
-                >
-                    <Plus className="h-5 w-5 mr-2" />
-                    Nuevo Ticket
-                </button>
+                <div className="flex items-center gap-2">
+                    {/* Botón Exportar */}
+                    <button
+                        onClick={handleExportCSV}
+                        title="Exportar lista actual a Excel"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md transition-all active:scale-95"
+                    >
+                        <Download className="h-4 w-4" />
+                        Exportar Excel
+                    </button>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="btn-primary inline-flex items-center justify-center whitespace-nowrap px-6"
+                    >
+                        <Plus className="h-5 w-5 mr-2" />
+                        Nuevo Ticket
+                    </button>
+                </div>
             </div>
 
             {/* Bulk Actions Bar */}
@@ -346,7 +395,12 @@ const Tickets = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredTickets.map(ticket => (
-                                    <tr key={ticket._id} className={`hover:bg-gray-50 transition-colors ${selectedTickets.includes(ticket._id) ? 'bg-blue-50/50' : ''}`}>
+                                    <tr key={ticket._id} className={`hover:bg-gray-50 transition-colors ${
+                                        selectedTickets.includes(ticket._id) ? 'bg-blue-50/50' : ''
+                                    } ${
+                                        getUrgency(ticket) === 'critical' ? 'border-l-4 border-red-500' :
+                                        getUrgency(ticket) === 'warning' ? 'border-l-4 border-yellow-400' : ''
+                                    }`}>
                                         <td className="px-6 py-4">
                                             {user?.rol === 'admin' && (
                                                 <input
@@ -358,7 +412,19 @@ const Tickets = () => {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="text-sm font-medium text-gray-900 mb-1">{ticket?.titulo || 'Sin Título'}</div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="text-sm font-medium text-gray-900">{ticket?.titulo || 'Sin Título'}</div>
+                                                {getUrgency(ticket) === 'critical' && (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-red-100 text-red-700 animate-pulse">
+                                                        <Clock className="h-3 w-3" /> +48h
+                                                    </span>
+                                                )}
+                                                {getUrgency(ticket) === 'warning' && (
+                                                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700">
+                                                        <Clock className="h-3 w-3" /> +24h
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-gray-500 truncate max-w-[200px]">{ticket?.descripcion || 'Sin descripción'}</span>
                                                 <span className="text-xs font-bold text-gray-400">|</span>
