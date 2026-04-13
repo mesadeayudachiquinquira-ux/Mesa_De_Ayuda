@@ -52,8 +52,8 @@ const Login = () => {
                         transition={{ delay: 0.5 }}
                     >
                         <div className="flex justify-center lg:justify-start mb-8">
-                             <div className="bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-2xl">
-                                <LifeBuoy className="h-12 w-12 text-white" />
+                             <div className="bg-white/10 backdrop-blur-xl p-3 rounded-3xl border border-white/20 shadow-2xl inline-flex items-center justify-center">
+                                <img src="/munisupport_logo.png" alt="MuniSupport Logo" className="h-14 w-14 object-contain rounded-2xl" />
                              </div>
                         </div>
                         <h1 className="text-6xl font-black tracking-tight leading-none mb-6">
