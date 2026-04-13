@@ -91,17 +91,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 </nav>
 
                 <div className="p-6 mt-auto">
-                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5 mb-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-xs shadow-md">
-                                {user?.nombre?.charAt(0) || 'U'}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-xs font-bold truncate max-w-[120px]">{user?.nombre || 'Usuario'}</span>
-                                <span className="text-[9px] text-slate-500 font-bold uppercase">{user?.rol || 'Rol'}</span>
-                            </div>
-                        </div>
-                    </div>
                     <button
                         onClick={handleLogout}
                         className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-400 rounded-2xl hover:bg-red-500/10 hover:text-red-300 transition-all group"
