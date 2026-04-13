@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Menu, Bell, User as UserIcon, X, Trash2 } from 'lucide-react';
+import { Menu, Bell, User as UserIcon, X, Trash2, LogOut } from 'lucide-react';
 import api from '../api/axios';
 
 const Navbar = ({ toggleSidebar }) => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
     const dropdownRef = useRef(null);
+    const profileRef = useRef(null);
     const audioRef = useRef(new Audio('/sounds/notification.mp3'));
     const prevUnreadCount = useRef(0);
 
@@ -27,16 +29,24 @@ const Navbar = ({ toggleSidebar }) => {
         prevUnreadCount.current = unread;
     }, [notifications]);
 
-    // Close dropdown on click outside
+    // Close dropdowns on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setShowNotifications(false);
             }
+            if (profileRef.current && !profileRef.current.contains(event.target)) {
+                setShowProfile(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     const fetchNotifications = async () => {
         try {
@@ -192,18 +202,35 @@ const Navbar = ({ toggleSidebar }) => {
                         </div>
 
                         {/* Profile dropdown */}
-                        <div className="flex items-center space-x-3 pl-4 border-l border-slate-200/50 group cursor-default">
-                            <div className="flex flex-col text-right hidden sm:flex">
-                                <span className="text-sm font-black text-slate-800 leading-none">
-                                    {user?.nombre}
-                                </span>
-                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-1">
-                                    {user?.rol}
-                                </span>
-                            </div>
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-700 flex items-center justify-center font-black text-sm border border-white shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all">
-                                {user?.nombre?.charAt(0).toUpperCase()}
-                            </div>
+                        <div className="relative pl-4 border-l border-slate-200/50" ref={profileRef}>
+                            <button 
+                                onClick={() => setShowProfile(!showProfile)}
+                                className="flex items-center space-x-3 group text-left w-full focus:outline-none"
+                            >
+                                <div className="flex flex-col text-right hidden sm:flex">
+                                    <span className="text-sm font-black text-slate-800 leading-none group-hover:text-blue-600 transition-colors">
+                                        {user?.nombre}
+                                    </span>
+                                    <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest mt-1">
+                                        {user?.rol}
+                                    </span>
+                                </div>
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-700 flex items-center justify-center font-black text-sm border border-white shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all">
+                                    {user?.nombre?.charAt(0).toUpperCase()}
+                                </div>
+                            </button>
+
+                            {showProfile && (
+                                <div className="absolute right-0 mt-3 w-48 bg-white/95 backdrop-blur-3xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-white/50 p-2 z-50 animate-in fade-in zoom-in duration-200 origin-top-right">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors"
+                                    >
+                                        <LogOut className="mr-3 h-4 w-4" />
+                                        Cerrar Sesión
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
