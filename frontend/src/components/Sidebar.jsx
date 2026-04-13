@@ -41,9 +41,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             >
                 <div className="flex items-center justify-between h-20 px-6 border-b border-white/5">
                     <div className="flex items-center space-x-3">
-                        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/30">
-                            <ShieldCheck className="h-6 w-6 text-white" />
-                        </div>
+                        <img 
+                            src="/munisupport_logo.png" 
+                            alt="MuniSupport Logo" 
+                            className="h-10 w-10 object-contain bg-white p-1 rounded-xl shadow-lg shadow-blue-600/20"
+                        />
                         <div className="flex flex-col">
                             <span className="text-lg font-black tracking-tighter leading-tight">MuniSupport</span>
                             <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Portal Oficial</span>
