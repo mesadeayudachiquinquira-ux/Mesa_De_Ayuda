@@ -6,7 +6,6 @@ import {
     LayoutDashboard,
     Ticket,
     Users,
-    LogOut,
     X,
     LifeBuoy,
     Building2,
@@ -14,13 +13,8 @@ import {
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
 
     const navLinks = [
         { name: 'Dashboard', to: '/app', icon: LayoutDashboard },
@@ -90,15 +84,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                     })}
                 </nav>
 
-                <div className="p-6 mt-auto">
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-3 text-sm font-bold text-red-400 rounded-2xl hover:bg-red-500/10 hover:text-red-300 transition-all group"
-                    >
-                        <LogOut className="mr-3 h-5 w-5 transition-transform group-hover:-translate-x-1" />
-                        Cerrar Sesión
-                    </button>
-                </div>
             </motion.div>
         </>
     );
