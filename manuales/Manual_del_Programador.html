@@ -1,0 +1,71 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Manual_del_Programador</title>
+<style>
+  body { 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+    line-height: 1.6; 
+    color: #1e293b; 
+    max-width: 850px; 
+    margin: 0 auto; 
+    padding: 40px; 
+    background-color: #ffffff;
+  }
+  h1 { color: #1e3a8a; font-size: 32px; border-bottom: 3px solid #bfdbfe; padding-bottom: 10px; margin-bottom: 30px; }
+  h2 { color: #2563eb; font-size: 24px; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+  h3 { color: #3b82f6; font-size: 18px; margin-top: 20px; }
+  p, li { font-size: 15px; color: #475569; }
+  ul, ol { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+  strong { color: #0f172a; }
+  code { background: #f1f5f9; padding: 3px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 13px; color: #dc2626;}
+</style>
+</head><body><h1>Manual del Programador - MuniSupport</h1>
+<p>Este documento está dirigido estrictamente a desarrolladores e ingenieros de software que deban heredar, mantener o expandir el código fuente de la plataforma MuniSupport. </p>
+<h2>1. Stack Tecnológico (MERN)</h2>
+<p>El proyecto ha sido construido utilizando el conjunto de tecnologías MERN, separando la capa del cliente de la del servidor para garantizar escalabilidad:</p>
+<h3>Frontend (Directorio <code>/frontend</code>)</h3>
+<ul>
+<li><strong>Core</strong>: React.js 18.x.</li>
+<li><strong>Empaquetador</strong>: Vite (reemplazando a Webpack por su rapidez extrema).</li>
+<li><strong>Estilos</strong>: TailwindCSS (Utility-first CSS). Todo el diseño es fluido y nativo, no depende de plantillas cerradas.</li>
+<li><strong>Enrutamiento</strong>: React Router DOM (Manejo de rutas públicas y privadas).</li>
+<li><strong>Iconografía</strong>: <code>lucide-react</code>.</li>
+</ul>
+<h3>Backend (Directorio <code>/backend</code>)</h3>
+<ul>
+<li><strong>Entorno</strong>: Node.js (Runtime).</li>
+<li><strong>Framework</strong>: Express.js (Creación de REST API).</li>
+<li><strong>Base de Datos</strong>: MongoDB (Motor NoSQL).</li>
+<li><strong>ORM / ODM</strong>: Mongoose (Modelado y consultas a datos).</li>
+<li><strong>Autenticación</strong>: JSON Web Tokens (JWT) y encriptación de claves con <code>bcrypt.js</code>.</li>
+</ul>
+<h2>2. Estructura de Directorios Internos</h2>
+<h3>2.1 Backend (Lógica de Negocio y API)</h3>
+<p>La API está construida bajo un patrón estructurado de responsabilidades:</p>
+<ul>
+<li><code>backend/models/</code>: Define los esquemas de la base de datos de MongoDB (Ej: <code>User.js</code> dicta cómo los documentos del usuario son organizados).</li>
+<li><code>backend/controllers/</code>: Contiene la carga pesada. Por ejemplo, <code>ticketController.js</code> maneja la lógica para guardar un nuevo ticket en Mongo.</li>
+<li><code>backend/routes/</code>: Expone las rutas HTTP. Vinculan las URL (creadas con el <em>Router</em> de Express) a sus respectivos controladores.</li>
+<li><code>backend/middleware/</code>: Actúan como interceptores. Validadores de JSON Web Tokens que bloquean el acceso al código a personas no autorizadas.</li>
+<li><code>backend/server.js</code>: El cerebro de inicialización. Conecta a la base de datos y echa a andar los puertos de Express.</li>
+</ul>
+<h3>2.2 Frontend (Interfaz Visual y Experiencia de Usuario)</h3>
+<ul>
+<li><code>frontend/src/pages/</code>: Archivos para las vistas de página completas navegables (Ej: <code>Home.jsx</code>, <code>Dashboard.jsx</code>, <code>Tickets.jsx</code>).</li>
+<li><code>frontend/src/components/</code>: Piezas pequeñas que se combinan para armar las páginas completas (Tablas, tarjetas, el <code>Sidebar.jsx</code>, <code>Navbar.jsx</code>).</li>
+<li><code>frontend/src/context/</code>: Alberga el Administrador Global de Sesiones o <code>AuthContext.jsx</code>. Mantiene los datos del usuario en memoria para que no tenga que iniciar sesión repetidamente entre vistas.</li>
+<li><code>frontend/src/api/</code>: Contiene configuraciones genéricas y cliente REST (Axios) para hablar estandarizadamente con el Backend.</li>
+</ul>
+<h2>3. Lógica de Autenticación Stateless</h2>
+<p>El flujo de seguridad principal del sistema no hace uso de Cookies tradicionales sino la estrategia de Tokens:</p>
+<ol>
+<li><strong>Inicio de Sesión</strong>: Al suministrar correo y clave, el controlador encripta la clave y la coteja en Base de datos.</li>
+<li><strong>Despacho del Token</strong>: El backend firma y devuelve un Token temporal que certifica &quot;Quien&quot; es el usuario y qué &quot;Rol&quot; tiene (Admin o Técnico).</li>
+<li><strong>Consumo Automático</strong>: El contexto de React inyecta constantemente este Bearer Token ocultamente a la cabecera en cada petición Axios futura. El servidor valida la franja firmada digitalmente; si es apto, envía la info.</li>
+</ol>
+<h2>4. Reglas Estrictas para Desarrollar a Futuro</h2>
+<ol>
+<li><strong>Separación de Lógica DB</strong>: Todas las funciones que consulten la Base de Datos (<code>Ticket.find()</code>, <code>User.create()</code>) <strong>DEBEN</strong> escribirse asiladamente dentro de la carpeta <code>/controllers</code>. Las rutas únicamente se encargan del ruteo.</li>
+<li><strong>No usar CSS Legacy</strong>: Se restringe cualquier hoja de estilo <code>.css</code> que no sea estrictamente el <code>index.css</code> global. Todos los retoques estéticos deben configurarse empleando clases <em>utility</em> de Tailwind (Ej: <code>className=&quot;bg-blue-600 rounded-xl&quot;</code>). Esto previene que el aspecto de GovTech se contamine.</li>
+<li><strong>Manejo de Operaciones Asíncronas</strong>: Los callbacks de conexión con base de datos siempre serán promesas (Async/Await) y deben anidarse entre bloques formales <code>try ... catch</code>. Toda captura de error deberá entregar un código HTTP (500/400/404) y un formato legible JSON como <code>{ message: &#39;Aviso del Error.&#39; }</code>.</li>
+</ol>
+</body></html>
